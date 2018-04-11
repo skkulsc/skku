@@ -102,7 +102,6 @@ def main() :
     today_time = datetime.datetime.now()
     saving_days = 365 # 오늘 날짜를 기준으로 저장할 기간
     for i in range(saving_days) :
-        # 랭킹뉴스에 오늘 랭킹이 업데이트 안되었을 수도 있으니 전날 랭킹부터 조사
         temp_time = today_time - datetime.timedelta(days = i + 1)
         date_str = temp_time.strftime('%Y%m%d')
 
