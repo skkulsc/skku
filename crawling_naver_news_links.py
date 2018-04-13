@@ -1,5 +1,6 @@
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup as BS
+from dateutil.parser import parse
 
 import requests as rq
 import datetime
@@ -98,13 +99,16 @@ def main() :
                               headers = fake_headers)
     soup = BS(ranking_news_res.content, 'lxml')
 
-    # 오늘 날짜를 기준으로 이전의 랭킹뉴스 링크를 저장
-    today_time = datetime.datetime.now()
-    saving_days = 365 # 오늘 날짜를 기준으로 저장할 기간
-    for i in range(saving_days) :
-        temp_time = today_time - datetime.timedelta(days = i + 1)
-        date_str = temp_time.strftime('%Y%m%d')
+    base_time = input("기준 날짜(연도월일 8글자, ex : 20160525)   : ")
+    base_time = parse(base_time)
+    print("시작 날짜 : ", base_time)
 
+    # 해당 날짜를 기준으로 저장할 기간
+    saving_days = int(input("저장할 기간 : "))
+
+    for i in range(saving_days) :
+        temp_time = base_time - datetime.timedelta(days = i)
+        date_str = temp_time.strftime('%Y%m%d')
         # 해당 날짜의 카테고리 8개를 모두 저장
         temp_links = {}
         for key, value in url_id.items() :
@@ -119,43 +123,50 @@ def main() :
     
     i = 0
     cur = 0 # 7일마다 1씩 증가함
-    temp1 = (today_time - datetime.timedelta(days = i + 1)).strftime('%Y%m%d')
+    temp1 = (base_time - datetime.timedelta(days = i)).strftime('%Y%m%d')
     temp2 = 0
     
     saving_links = {} # 7일 단위의 각 카테고리들의 뉴스 링크(30개씩)들을 저장
     category_links = {}
-    for date, links in date_links.items() :
-        print(date)
-        temp2 = date
-        # 특성 시점에 대한 모든 기사(30개)들을 저장
-        for category, category_link in links.items() :
-            time.sleep(2)
-            category_res = rq.get(category_link, headers = fake_headers)
-            soup = BS(category_res.content, 'lxml')
+    
+    try :
+        for date, links in date_links.items() :
+            print("크롤링 날짜 => ", date)
+            temp2 = date
+            # 특성 시점에 대한 모든 기사(30개)들을 저장
+            for category, category_link in links.items() :
+                time.sleep(2)
+                category_res = rq.get(category_link, headers = fake_headers)
+                
+                soup = BS(category_res.content, 'lxml')
 
-            temp_links = soup.select('#wrap table td.content > div.content ol.ranking_list > li > div.ranking_text > div.ranking_headline > a')
-            temp_links = [[link.attrs['title'], news_url + link.attrs['href']] for link in temp_links]
+                temp_links = soup.select('#wrap table td.content > div.content ol.ranking_list > li > div.ranking_text > div.ranking_headline > a')
+                temp_links = [[link.attrs['title'], news_url + link.attrs['href']] for link in temp_links]
 
-            # {"정치" : [30개의 링크 리스트], "경제" : [30개의 링크 리스트], ...}
-            category_links[category] = temp_links
+                # {"정치" : [30개의 링크 리스트], "경제" : [30개의 링크 리스트], ...}
+                category_links[category] = temp_links
 
-        # 특정 시점에 대한 모든 기사들을 다 저장했다면, 또 다른 dict에 다른 일정의 기사들을 저장
-        # {"20180312" : {"정치" : [...], "경제" : [...], ...}, "20180311" : {"정치" : [...], ...}, ...}
-        saving_links[date] = copy.deepcopy(category_links)
-        category_links.clear()
-        i += 1
+            # 특정 시점에 대한 모든 기사들을 다 저장했다면, 또 다른 dict에 다른 일정의 기사들을 저장
+            # {"20180312" : {"정치" : [...], "경제" : [...], ...}, "20180311" : {"정치" : [...], ...}, ...}
+            saving_links[date] = copy.deepcopy(category_links)
+            category_links.clear()
+            i += 1
 
-        # 7일 단위로 저장
-        if (i == 7) :
-            save_jsonFile(crawling_dir, temp2, temp1, saving_links)
+            # 7일 단위로 저장
+            if (i == 7) :
+                save_jsonFile(crawling_dir, temp2, temp1, saving_links)
 
-            # saving_links에 저장된 모든 요소들을 제거
-            saving_links.clear()
-            cur += 1
-            temp1 = (today_time - datetime.timedelta(days = (cur * 7) + 1)).strftime('%Y%m%d')
-            i = 0
-
-    save_jsonFile(crawling_dir, temp2, temp1, saving_links)
+                # saving_links에 저장된 모든 요소들을 제거
+                saving_links.clear()
+                cur += 1
+                temp1 = (base_time - datetime.timedelta(days = cur * 7)).strftime('%Y%m%d')
+                i = 0
+                
+    except KeyboardInterrupt as e:
+        print("KeyboardInterrupt")
+        
+    finally :
+        save_jsonFile(crawling_dir, temp2, temp1, saving_links)
 
 if __name__ == "__main__" :
     main()
