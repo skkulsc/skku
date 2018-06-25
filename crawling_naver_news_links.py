@@ -9,14 +9,6 @@ import json
 import os
 import copy
 
-# URL의 sectionId
-# ex) 정치 sectionId : 100
-# http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=100&date=20180311
-url_id = {"정치" : 100, "경제" : 101, "사회" : 102, "생활" : 103, "세계" : 104, "과학" : 105}
-
-# 날짜들의 링크를 저장할 dictionary {'날짜' : '링크'}
-date_links = {}
-
 # json파일을 저장하는 함수
 def save_jsonFile(dir_name, from_, to_, json_content) :
     file_name = dir_name + "/{}_{}.json".format(from_, to_)
@@ -78,18 +70,19 @@ def init_naver(dir_name, fake_headers) :
         filePointer.write(soup.prettify())
 
 def main() :
-    global date_links
-    global url_id
+    # URL의 sectionId
+    # ex) 정치 sectionId : 100
+    # http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=100&date=20180311
+    url_id = {"정치" : 100, "경제" : 101, "사회" : 102, "생활" : 103, "세계" : 104, "과학" : 105}
 
     dir_name = "./naver_news"
     make_directory(dir_name)
 
     # fake userAgent 생성
     ua = UserAgent()
-    fake_google = ua.google
-    fake_headers = {"User-Agent" : fake_google}
+    fake_headers = {"User-Agent" : ua.google}
     
-    init_naver(dir_name, fake_headers)
+    # init_naver(dir_name, fake_headers)
 
     news_url = "https://news.naver.com"
     ranking_url = news_url + "/main/ranking/popularDay.nhn?rankingType=popular_day"
@@ -99,16 +92,16 @@ def main() :
                               headers = fake_headers)
     soup = BS(ranking_news_res.content, 'lxml')
 
-    base_time = input("기준 날짜(연도월일 8글자, ex : 20160525)   : ")
-    base_time = parse(base_time)
-    print("시작 날짜 : ", base_time)
+    start_time = parse(input("크롤링 시작 날짜(연도월일 8글자, ex : 20160525)   : "))
+    end_time = parse(input("크롤링 마지막 날짜(연도월일 8글자, ex : 20160523)   : "))       
+    delta = start_time - end_time
 
-    # 해당 날짜를 기준으로 저장할 기간
-    saving_days = int(input("저장할 기간 : "))
-
-    for i in range(saving_days) :
-        temp_time = base_time - datetime.timedelta(days = i)
+    # 날짜들의 링크를 저장할 dictionary {'날짜' : '링크'}
+    date_links = {}
+    for i in range(0, delta.days + 1) :
+        temp_time = start_time - datetime.timedelta(days = i)
         date_str = temp_time.strftime('%Y%m%d')
+        
         # 해당 날짜의 카테고리 8개를 모두 저장
         temp_links = {}
         for key, value in url_id.items() :
@@ -121,18 +114,13 @@ def main() :
     crawling_dir = dir_name + "/crawling_links"
     make_directory(crawling_dir)
     
-    i = 0
-    cur = 0 # 7일마다 1씩 증가함
-    temp1 = (base_time - datetime.timedelta(days = i)).strftime('%Y%m%d')
-    temp2 = 0
-    
+    temp = start_time   
     saving_links = {} # 7일 단위의 각 카테고리들의 뉴스 링크(30개씩)들을 저장
     category_links = {}
     
     try :
         for date, links in date_links.items() :
             print("크롤링 날짜 => ", date)
-            temp2 = date
             # 특성 시점에 대한 모든 기사(30개)들을 저장
             for category, category_link in links.items() :
                 time.sleep(2)
@@ -148,25 +136,24 @@ def main() :
 
             # 특정 시점에 대한 모든 기사들을 다 저장했다면, 또 다른 dict에 다른 일정의 기사들을 저장
             # {"20180312" : {"정치" : [...], "경제" : [...], ...}, "20180311" : {"정치" : [...], ...}, ...}
+            # dictionary는 mutable 타입
             saving_links[date] = copy.deepcopy(category_links)
             category_links.clear()
-            i += 1
 
+            # 마지막 날짜까지 저장했음
+            if (parse(date) == end_time) :
+                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), temp.strftime('%Y%m%d'), saving_links)
+                
             # 7일 단위로 저장
-            if (i == 7) :
-                save_jsonFile(crawling_dir, temp2, temp1, saving_links)
+            elif ((temp - parse(date)).days + 1 == 7) :
+                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), temp.strftime('%Y%m%d'), saving_links)
 
                 # saving_links에 저장된 모든 요소들을 제거
                 saving_links.clear()
-                cur += 1
-                temp1 = (base_time - datetime.timedelta(days = cur * 7)).strftime('%Y%m%d')
-                i = 0
+                temp = temp - datetime.timedelta(days = 7)
                 
     except KeyboardInterrupt as e:
         print("KeyboardInterrupt")
-        
-    finally :
-        save_jsonFile(crawling_dir, temp2, temp1, saving_links)
 
 if __name__ == "__main__" :
     main()
