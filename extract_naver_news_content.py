@@ -7,7 +7,6 @@ import datetime
 import time
 import json
 import os, glob
-import re
 from copy import deepcopy
 
 CATEGORIES = ['정치', '경제', '사회', '생활', '세계', '과학']
@@ -25,31 +24,13 @@ def save_json_contents(dir_path, date, json_contents) :
                               ensure_ascii = False)
         fp.write(json_val)
 
-def string_filter(strings) :
-    #print(strings)
-    #print("-----------------------------------------------------------------------")
-    strings = re.sub('[\.]+', '.', strings)
-    strings = re.sub('[^ 가-힣a-zA-Z0-9.][기자|앵커|서울경제 디센터|뉴스데스크]+[^ 가-힣a-zA-Z0-9.]', '', strings)
-    hangul = re.compile('[^ 가-힣a-zA-Z0-9.,]+')
-    result = hangul.sub('', strings)
-
-    result = result.split('.')
-    for i in range(len(result)) :
-        result[i] = result[i].strip()
-        if (len(result[i]) <= 15) :
-            result[i] = ' '
-
-    result = ". ".join(result)
-    return result
-
 def main() :
     global CATEGORIES_KOREAN
     global CATEGORIES_ENGLISH
     
     # fake userAgent 생성
     ua = UserAgent()
-    fake_google = ua.google
-    fake_headers = {"User-Agent" : fake_google}
+    fake_headers = {"User-Agent" : ua.google}
 
     path = "./naver_news/crawling_links/"
     if (os.path.exists(path)) :
@@ -71,7 +52,8 @@ def main() :
 
     while True :
         try :
-            base_date = int(input("기준 날짜(연도월일 8글자 ex : 20160425)    : "))
+            start_date = int(input("시작 날짜(연도월일 8글자 ex : 20160425)    : "))
+            end_date = int(input("마지막 날짜(연도월일 8글자 ex : 20160422)    : "))
             break
         except ValueError as e :
             print("날짜를 다시 입력해주세요")
@@ -82,20 +64,24 @@ def main() :
     date_files = [[int(date_range[ : 8]), int(date_range[9 : ])] for
                        date_range in date_files]
 
-    index = -1
+    from_ = -1; to_ = -1;
     for idx, lists in enumerate(date_files) :
-        if (lists[0] <= base_date) and (base_date <= lists[1]) :
-            index = idx
+        if (lists[0] <= start_date) and (start_date <= lists[1]) :
+            from_ = idx
+        if (lists[0] <= end_date) and (end_date <= lists[1]) :
+            to_ = idx
+
+        if (from_ != -1 and to_ != -1) :
             break
 
-    if (index == -1) :
+    if (from_ == -1 or to_ == -1) :
         print("해당 날짜를 찾을 수 없습니다.")
         quit()
         
-    link_files = link_files[index : ]
-    base_date = parse(str(base_date))
+    link_files = link_files[from_ : to_ + 1]
+    print("\n시작 : ", link_files[0], "  끝 : ", link_files[-1]) 
+    start_date = parse(str(start_date))
     
-    i = 0
     contents = {}
     for file in link_files :
         with open(file, "r", encoding = 'utf-8') as fp :
@@ -103,8 +89,7 @@ def main() :
             json_data = json.loads(data)
 
             for day in range(7) :
-                temp_time = base_date - datetime.timedelta(days = i)
-                date_str = temp_time.strftime('%Y%m%d')
+                date_str = start_date.strftime('%Y%m%d')
                 print("\n                                {}".format(date_str))
 
                 # 파일에 해당 날짜가 존재하면
@@ -123,47 +108,34 @@ def main() :
                             temp['title'] = title
                             temp['link'] = link
 
-                            time.sleep(2)
+                            time.sleep(1)
                             news_res = rq.get(link, headers = fake_headers)
                             soup = BS(news_res.content, 'lxml')
                             [s.extract() for s in soup(['script', 'span', 'a', 'h4'])]
 
                             try : 
                                 texts = soup.find(id = 'articleBodyContents')
-                                
-                                article = texts.get_text().strip()
-                                result = string_filter(article)
-                                temp['original'] = article
-                                temp['changed'] = result
-                                
+                                article = texts.get_text().lstrip()
+                                temp['original'] = article                                
                                 contents[idx] = deepcopy(temp)
                                 
                             except AttributeError as e :
                                 try :
-                                    texts = soup.find(id = 'articeBody') # 연애기사
-                                    article = texts.get_text().strip()
-                                    result = string_filter(article)
-
-                                    temp['original'] = article
-                                    temp['changed'] = result
-                                    
+                                    texts = soup.find(id = 'articeBody')
+                                    article = texts.get_text().lstrip()
+                                    temp['original'] = article                                   
                                     contents[idx] = deepcopy(temp)
                                     
                                 except AttributeError as e :
                                     temp['original'] = u"본문을 찾을 수 없습니다."
-                                    temp['changed'] = u'본문을 찾을 수 없습니다.'
                                     contents[idx] = deepcopy(temp)
                                                            
                         save_json_contents(dir_path, date_str, contents)
                         contents.clear()
                         
-                    i += 1
-                    
+                    start_date -= datetime.timedelta(days = 1)
                 else :
                     break
-            
-        print("time.sleep(5)")
-        time.sleep(5)
             
 if __name__ == "__main__" :
     main()
