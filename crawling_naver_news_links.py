@@ -88,21 +88,19 @@ def main() :
     ranking_url = news_url + "/main/ranking/popularDay.nhn?rankingType=popular_day"
 
     # 랭킹뉴스 접근
-    ranking_news_res = rq.get(ranking_url,
-                              headers = fake_headers)
+    ranking_news_res = rq.get(ranking_url, headers = fake_headers)
     soup = BS(ranking_news_res.content, 'lxml')
 
     start_time = parse(input("크롤링 시작 날짜(연도월일 8글자, ex : 20160525)   : "))
     end_time = parse(input("크롤링 마지막 날짜(연도월일 8글자, ex : 20160523)   : "))       
-    delta = start_time - end_time
 
     # 날짜들의 링크를 저장할 dictionary {'날짜' : '링크'}
     date_links = {}
-    for i in range(0, delta.days + 1) :
+    for i in range(0, (start_time - end_time).days + 1) :
         temp_time = start_time - datetime.timedelta(days = i)
         date_str = temp_time.strftime('%Y%m%d')
         
-        # 해당 날짜의 카테고리 8개를 모두 저장
+        # 해당 날짜의 카테고리 6개를 모두 저장
         temp_links = {}
         for key, value in url_id.items() :
             url = ranking_url + '&sectionId=' + str(value) + '&date=' + date_str
@@ -113,8 +111,7 @@ def main() :
     # links들을 저장할 폴더를 생성
     crawling_dir = dir_name + "/crawling_links"
     make_directory(crawling_dir)
-    
-    temp = start_time   
+      
     saving_links = {} # 7일 단위의 각 카테고리들의 뉴스 링크(30개씩)들을 저장
     category_links = {}
     
@@ -142,19 +139,18 @@ def main() :
 
             # 마지막 날짜까지 저장했음
             if (parse(date) == end_time) :
-                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), temp.strftime('%Y%m%d'), saving_links)
+                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), start_time.strftime('%Y%m%d'), saving_links)
                 
             # 7일 단위로 저장
-            elif ((temp - parse(date)).days + 1 == 7) :
-                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), temp.strftime('%Y%m%d'), saving_links)
+            elif ((start_time - parse(date)).days + 1 == 7) :
+                save_jsonFile(crawling_dir, parse(date).strftime('%Y%m%d'), start_time.strftime('%Y%m%d'), saving_links)
 
                 # saving_links에 저장된 모든 요소들을 제거
                 saving_links.clear()
-                temp = temp - datetime.timedelta(days = 7)
+                start_time -= datetime.timedelta(days = 7)
                 
     except KeyboardInterrupt as e:
         print("KeyboardInterrupt")
 
 if __name__ == "__main__" :
     main()
-    
