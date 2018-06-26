@@ -3,7 +3,6 @@ from konlpy.tag import Twitter
 import json
 import re
 import os, glob
-from copy import deepcopy
 import time
 import threading
 
