@@ -5,7 +5,6 @@ import json
 import gensim
 from gensim.models import Word2Vec
 from gensim.test.utils import common_texts as sentences
-from gensim.models.callbacks import CallbackAny2Vec
 from gensim.test.utils import get_tmpfile
 import multiprocessing
 
@@ -32,7 +31,6 @@ class EpochLogger(CallbackAny2Vec):
         
 epoch_saver = EpochSaver(get_tmpfile("temporary_model"))
 epoch_logger = EpochLogger()
-
 
 train_preprocessed_path = "./naver_news/training/words_100/data/train_reverse_result.json"
 test_preprocessed_path = "./naver_news/training/words_100/data/test_reverse_result.json"
