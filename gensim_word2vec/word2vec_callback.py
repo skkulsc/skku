@@ -1,3 +1,5 @@
+# https://radimrehurek.com/gensim/models/callbacks.html
+
 from gensim.models.callbacks import CallbackAny2Vec
 
 class EpochSaver(CallbackAny2Vec):
