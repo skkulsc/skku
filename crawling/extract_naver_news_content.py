@@ -10,8 +10,7 @@ import os, glob
 from copy import deepcopy
 
 CATEGORIES = ['정치', '경제', '사회', '생활', '세계', '과학']
-CATEGORIES_ENGLISH = ['politics', 'economy', 'society', 'living',
-                      'world', 'science']
+CATEGORIES_ENGLISH = ['politics', 'economy', 'society', 'living', 'world', 'science']
 
 def save_json_contents(dir_path, date, json_contents) :
     if (os.path.exists(dir_path)) :
