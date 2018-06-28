@@ -15,7 +15,6 @@ del model
 data_path = "./naver_news/training/words_100/data/"
 test_string_path = data_path + "test_reverse_result.json"
 train_string_path = data_path + "train_reverse_result.json"
-
 train_lists_X = []
 train_lists_Y = []
 test_lists_X = []
