@@ -5,8 +5,7 @@ import operator
 import numpy as np
 
 CATEGORIES = ['politics', 'economy', 'society', 'living', 'world', 'science']
-LABEL = {'politics' : 0, 'economy' : 1, 'society' : 2,
-         'living' : 3, 'world' : 4, 'science' : 5}
+LABEL = {'politics' : 0, 'economy' : 1, 'society' : 2, 'living' : 3, 'world' : 4, 'science' : 5}
 
 freq_dic = {}                       # 단어의 빈도 수를 저장하는 딕셔너리
 word_dic = {"PAD" : 0, "UNK" : 1}   # {id : 단어}
