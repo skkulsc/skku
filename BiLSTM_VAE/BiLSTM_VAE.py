@@ -155,7 +155,6 @@ numpy_testY = np.load("./naver_news/training/words_100/data/testY_vector_result.
 
 # multi gpu 사용
 parallel_VAE = ModelMGPU(VAE, gpus = 2)
-
 parallel_VAE.compile(optimizer = 'Adam',
                             loss = [VAE_Loss, 'categorical_crossentropy'],
                             metrics = ['accuracy'])
