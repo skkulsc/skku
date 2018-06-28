@@ -73,7 +73,6 @@ def preprocessing_contents(original_paths, preprocessing_paths, start_time, end_
 
     print(original_paths, " 종료")
                     
-    
 def main() :
     twitter = Twitter()
     CATEGORIES = ['politics', 'economy', 'society', 'living', 'world', 'science']
