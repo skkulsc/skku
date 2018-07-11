@@ -79,67 +79,37 @@ class AAE() :
         self.latent_size = latent_size
         self.nb_classes = nb_classes
         self.nb_epoch = nb_epoch
-
-        ####################################### encoder 모델 #######################################
         
         # encoder의 input
         original_sentences = Input(shape = (self.sentences_length, ), name = 'encoder_input')
         # encoder의 output
         latent_space = self.encoder_model(original_sentences)
-        # encoder 모델
-        self.encoder = Model(inputs = original_sentences, outputs = latent_space)
 
-        print("encoder model\n", self.encoder.summary(), "\n\n\n")
-        plot_model(self.encoder, self.pictures_path + "/encoder.png", show_shapes = True, show_layer_names = True)
-
-        
-
-
-        ####################################### decoder 모델 #######################################
-
+        # autoencoder model
         reconstructed_sentences = self.decoder_model(latent_space)
-        # decoder 모델
-        self.decoder = Model(inputs = original_sentences, outputs = reconstructed_sentences)
 
-        print("decoder model\n", self.decoder.summary(), "\n\n\n")
-        plot_model(self.decoder, self.pictures_path + "/decoder.png", show_shapes = True, show_layer_names = True)
-
-
-
-        #################################### discriminator 모델 ####################################
-
-        discriminator_decision = self.discriminator_model(latent_space)
-        # discriminator 모델
-        self.discriminator = Model(inputs = original_sentences, outputs = discriminator_decision)
+        # discriminator model
+        discriminator_input = Input(shape = (self.latent_size, ), name = 'discriminator_input')
+        discriminator_decision = self.discriminator_model(discriminator_input)
+        self.discriminator = Model(inputs = discriminator_input, outputs = discriminator_decision)
 
         print("discriminator model\n", self.discriminator.summary(), "\n\n\n")
         plot_model(self.discriminator, self.pictures_path + "/discriminator.png", show_shapes = True, show_layer_names = True)
 
 
-
-
-        ############################### adversarial_autoencoder 모델 ###############################
-        
+        # adversarial_autoencoder 모델
         # generator를 훈련시킬 때는 discriminator의 weights를 고정함
         self.discriminator.trainable = False
         fake_or_real = self.discriminator(latent_space)
 
         # adversarial_autoencoder
+        # encoder에서 나온 fake_or_real와 train함수의 ones와 비교
         self.adversarial_autoencoder = Model(inputs = original_sentences,
                                              outputs = [reconstructed_sentences, fake_or_real])
         
         print("adversarial_autoencoder model\n", self.adversarial_autoencoder.summary())
         plot_model(self.adversarial_autoencoder, self.pictures_path + "/adversarial_autoencoder.png",
                    show_shapes = True, show_layer_names = True)
-        
-        
-        model = (self.encoder).to_json()
-        with open(self.architectures_path + "/encoder.json", "w", encoding = 'utf-8') as fp :
-            fp.write(model)
-
-        model = (self.decoder).to_json()
-        with open(self.architectures_path + "/decoder.json", "w", encoding = 'utf-8') as fp :
-            fp.write(model)
 
         model = (self.discriminator).to_json()
         with open(self.architectures_path + "/discriminator.json", "w", encoding = 'utf-8') as fp :
