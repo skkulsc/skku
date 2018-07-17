@@ -1,3 +1,7 @@
+
+
+# Google Cloud Compute Engine에서 plot_model을 사용할 수 없어 주석처리함 
+
 import json
 import numpy as np
 import os, glob
@@ -19,7 +23,7 @@ from keras.layers.recurrent import LSTM
 from keras.layers.wrappers import Bidirectional
 
 from keras.utils.training_utils import multi_gpu_model
-from keras.utils.vis_utils import plot_model
+#from keras.utils.vis_utils import plot_model
 from keras.utils import np_utils
 
 from keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -43,7 +47,8 @@ class ModelMGPU(Model):
             return getattr(self._smodel, attrname)
 
         return super(ModelMGPU, self).__getattribute__(attrname)
-    
+
+
 class AAE() :
     # gensim에서 훈련시킨 word2vec model을 저장함
     def __init__(self, reverse_word_dic_path, model_path, embedding_weight_path) :
@@ -53,7 +58,9 @@ class AAE() :
         
         self.pictures_path = self.model_path + "/pictures"
         self.architectures_path = self.model_path + "/architecture"
-        self.weights_path = self.model_path + "/weights"
+        weights_path = self.model_path + "/weights"
+        self.disc_weights_path = weights_path + "/discriminator"
+        self.aae_weights_path = weights_path + "/aae"
         
         if (os.path.exists(reverse_word_dic_path)) :
             with open(reverse_word_dic_path, "r", encoding = 'utf-8') as fp :
@@ -69,7 +76,9 @@ class AAE() :
             os.makedirs(self.model_path)
             os.makedirs(self.pictures_path)
             os.makedirs(self.architectures_path)
-            os.makedirs(self.weights_path)
+            os.makedirs(weights_path)
+            os.makedirs(self.disc_weights_path)
+            os.makedirs(self.aae_weights_path)
         
     def make_AAE(self, batch_size = 512, sentences_length = 300, embed_size = 100,
                  latent_size = 100, nb_classes = 6, nb_epoch = 100) :
@@ -81,9 +90,19 @@ class AAE() :
         self.nb_epoch = nb_epoch
         
         # encoder의 input
-        original_sentences = Input(shape = (self.sentences_length, ), name = 'encoder_input')
+        original_sentences = Input(shape = (self.sentences_length, ), name = 'embedding_input_input')
+        embedding_sentences = Embedding(self.embedding_weight.shape[0], self.embedding_weight.shape[1], 
+                                        weights = [self.embedding_weight],input_length = self.sentences_length, 
+                                        trainable = False, name = 'embedding_layer')(original_sentences)
+        self.embedding_model = Model(inputs = original_sentences, outputs = embedding_sentences)
+        
+        print("embedding model\n", self.embedding_model.summary(), "\n\n\n")
+        #plot_model(self.embedding_model, self.pictures_path + "/embedding.png", show_shapes = True, show_layer_names = True)
+
+        
         # encoder의 output
-        latent_space = self.encoder_model(original_sentences)
+        aae_input = Input(shape = (self.sentences_length, self.embed_size, ), name = 'AAE_input')
+        latent_space = self.encoder_model(aae_input)
 
         # autoencoder model
         reconstructed_sentences = self.decoder_model(latent_space)
@@ -94,8 +113,7 @@ class AAE() :
         self.discriminator = Model(inputs = discriminator_input, outputs = discriminator_decision)
 
         print("discriminator model\n", self.discriminator.summary(), "\n\n\n")
-        plot_model(self.discriminator, self.pictures_path + "/discriminator.png", show_shapes = True, show_layer_names = True)
-
+        #plot_model(self.discriminator, self.pictures_path + "/discriminator.png", show_shapes = True, show_layer_names = True)
 
         # adversarial_autoencoder 모델
         # generator를 훈련시킬 때는 discriminator의 weights를 고정함
@@ -104,29 +122,22 @@ class AAE() :
 
         # adversarial_autoencoder
         # encoder에서 나온 fake_or_real와 train함수의 ones와 비교
-        self.adversarial_autoencoder = Model(inputs = original_sentences,
+        self.adversarial_autoencoder = Model(inputs = aae_input,
                                              outputs = [reconstructed_sentences, fake_or_real])
         
         print("adversarial_autoencoder model\n", self.adversarial_autoencoder.summary())
-        plot_model(self.adversarial_autoencoder, self.pictures_path + "/adversarial_autoencoder.png",
-                   show_shapes = True, show_layer_names = True)
+        #plot_model(self.adversarial_autoencoder, self.pictures_path + "/adversarial_autoencoder.png",
+        #           show_shapes = True, show_layer_names = True)
 
-        model = (self.discriminator).to_json()
         with open(self.architectures_path + "/discriminator.json", "w", encoding = 'utf-8') as fp :
-            fp.write(model)
-
-        model = (self.adversarial_autoencoder).to_json()
+            fp.write((self.discriminator).to_json())
         with open(self.architectures_path + "/adversarial_autoencoder.json", "w", encoding = 'utf-8') as fp :
-            fp.write(model)
+            fp.write((self.adversarial_autoencoder).to_json())
 
             
-    def encoder_model(self, encoder_input) :
-        embedding_sentences = Embedding(self.embedding_weight.shape[0], self.embedding_weight.shape[1], weights = [self.embedding_weight],
-                                        input_length = self.sentences_length, trainable = False,
-                                        name = 'embedding_layer')(encoder_input)
-        
+    def encoder_model(self, encoder_input) :      
         encoder_layer1 = Bidirectional(LSTM(100, return_sequences = True, dropout = 0.5, recurrent_dropout = 0.5),
-                                       name = 'encoder_layer1', merge_mode = 'sum')(embedding_sentences)
+                                       name = 'encoder_layer1', merge_mode = 'sum')(encoder_input)
         encoder_layer2 = Bidirectional(LSTM(50, return_sequences = True, dropout = 0.5, recurrent_dropout = 0.5),
                                        name = 'encoder_layer2', merge_mode = 'sum')(encoder_layer1)
         encoder_layer3 = Bidirectional(LSTM(25, return_sequences = False, dropout = 0.5, recurrent_dropout = 0.5),
@@ -161,7 +172,7 @@ class AAE() :
                                        name = 'decoder_layer3', merge_mode = 'sum')(decoder_layer2)
         reconstructed_news = Bidirectional(LSTM(self.embed_size, return_sequences = True,
                                             dropout = 0.5, recurrent_dropout = 0.5),
-                                       name = 'reconstructed_news', merge_mode = 'sum')(decoder_layer3)
+                                       name = 'decoder_output', merge_mode = 'sum')(decoder_layer3)
 
         return reconstructed_news
 
@@ -182,10 +193,10 @@ class AAE() :
 
 
     # 이미 훈련한 모델을 재사용할 경우 load = True로 호출
-    def train(self, train_data_path, test_data_path, load = False, disc_weights_path = 0, aee_weights_path = 0) :
+    def train(self, train_data_path, test_data_path, load = False, disc_weights_path = 0, aae_weights_path = 0) :
         # 파일 불러오기
         train_X = []; train_Y = []
-        
+    
         if (os.path.exists(train_data_path)) :
             with open(train_data_path, "r", encoding = 'utf-8') as fp :
                 trainSets = json.load(fp)
@@ -193,57 +204,70 @@ class AAE() :
         if (os.path.exists(test_data_path)) :
             with open(test_data_path, "r", encoding = 'utf-8') as fp :
                 testSets = json.load(fp)
-                test_X.extend(testSets["X"]); test_Y.extend(testSets["Y"])
+                train_X.extend(testSets["X"]); train_Y.extend(testSets["Y"])
+                
+        train_Y = np_utils.to_categorical(train_Y, self.nb_classes)
+        train_X = np.array(train_X)
 
-        train_X = np.array(train_X); train_Y = np.array(train_Y)
-
-        zeros = np.zeros(size = (batch_size, 1))
-        ones = np.ones(size = (batch_size, 1))
+        zeros = np.zeros(shape = (self.batch_size, 1))
+        ones = np.ones(shape = (self.batch_size, 1))
         
-        if load : # 저장한 weights를 불러옴
-            self.discriminator.load_weights(disc_weights_path)
-            self.adversarial_autoencoder.load_weights(aee_weights_path)
-            
-        parallel_discriminator = ModelGPU(self.discriminator, gpus = 2)
+        parallel_discriminator = ModelMGPU(self.discriminator, gpus = 2)
         parallel_discriminator.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
                                        
-        parallel_aae = ModelGPU(self.adversarial_autoencoder, gpus = 2)
-        parallel_aae.compile(loss = ['mse', 'binary_crossentropy'], loss_weights = [0.999, 0.001], optimizer = 'Adam')
-                
-        for epoch in range(nb_epoch) :
-            # 매번 random한 data로 훈련함
-            index = np.random.randint(0, train_X.shape[0], batch_size)
-            selected_news = train_X[index]
+        parallel_aae = ModelMGPU(self.adversarial_autoencoder, gpus = 2)
+        parallel_aae.compile(loss = ['mse', 'binary_crossentropy'], loss_weights = [0.999, 0.001], optimizer = 'Adam',
+                            metrics = [metrics.mse, metrics.binary_accuracy])
 
+        aae_latent_space_output = K.function([self.adversarial_autoencoder.layers[0].input],
+                                [self.adversarial_autoencoder.layers[6].output])
+        
+        embedding_model_output = K.function([self.embedding_model.layers[0].input],
+                                           [self.embedding_model.layers[1].output])  
+        
+        if load : # 저장한 weights를 불러옴
+            print("weights를 불러옵니다.")
+            parallel_discriminator.load_weights(disc_weights_path)
+            parallel_aae.load_weights(aae_weights_path)
+                    
+        for epoch in range(self.nb_epoch) :
+            # 매번 random한 data로 훈련함
+            index = np.random.choice(train_X.shape[0], self.batch_size, replace = False)
+            #index = np.random.randint(0, train_X.shape[0], self.batch_size)
+            selected_news = (train_X[index]).tolist()
+            latent_space_output_list = (embedding_model_output([selected_news])[0]).tolist()
+            
             # discriminator 훈련
-            # 가짜 input과 진짜 input 생성
-            fake_input = self.encoder.predict(selected_news)
+            # 가짜 input과 진짜 input 생성           
+            fake_input = aae_latent_space_output([latent_space_output_list])[0]
             real_input = np.random.normal(size = (self.batch_size, self.latent_size))
 
-            fake_loss = self.discriminator.train_on_batch(fake_input, zeros)
-            real_loss = self.discriminator.train_on_batch(real_input, ones)
+            fake_loss = parallel_discriminator.train_on_batch(fake_input, zeros)
+            real_loss = parallel_discriminator.train_on_batch(real_input, ones)
 
             discriminator_loss = 0.5 * np.add(real_loss, fake_loss)
 
             # generator 훈련
-            aae_loss = self.adversarial_autoencoder.train_on_batch(selected_news,
-                            [self.vectorized_words(selected_news), ones])
-
+            aae_loss = parallel_aae.train_on_batch(embedding_model_output([selected_news])[0],
+                            [embedding_model_output([selected_news])[0], ones])
+            
+            print("%d [D loss: %f, acc: %2f%%] [G loss: %f, mse: %f, acc: %2f%%]"%(epoch,
+                                                                      discriminator_loss[0], 100 * discriminator_loss[1],
+                                                                      aae_loss[0], aae_loss[1], 100 * aae_loss[2]))
             # weights 저장
-            self.discriminator.save_weights(self.weights_path + "epoch_{:d}".format(epoch) +
+            parallel_discriminator.save_weights(self.disc_weights_path + "/epoch_{:d}".format(epoch) +
                                     "__disc-acc_{:.4f}".format(discriminator_loss[1]) +
                                     "__disc-loss_{:4f}_".format(discriminator_loss[0]) + ".hdf5")
-            self.adversarial_autoencoder.save_weights(self.weights_path + "epoch_{:d}".format(epoch) +
-                                    "__AAE-loss_{:.4f}".format(aae_loss[1]) +
-                                    "__AEE-mse_{:4f}_".format(aee_loss[0]) + ".hdf5")
+            parallel_aae.save_weights(self.aae_weights_path + "/epoch_{:d}".format(epoch) +
+                                    "__AAE-loss_{:.4f}".format(aae_loss[0]) +
+                                    "__AEE-mse_{:4f}_".format(aae_loss[1]) + ".hdf5")
 
-
-def main() :  
-    word_dic_path = "./naver_news/training/word-dic.json"
-    reverse_word_dic_path = "./naver_news/training/word-dic-reverse.json"
-    train_data_path = "./naver_news/training/data/train_result.json"
-    test_data_path = "./naver_news/training/data/test_result.json"
-    embedding_weight_path = "./embedding_weights.npy"
+def main() :     
+    word_dic_path = "./training/word-dic.json"
+    reverse_word_dic_path = "./training/word-dic-reverse.json"
+    train_data_path = "./training/data/train_result.json"
+    test_data_path = "./training/data/test_result.json"
+    embedding_weight_path = "./training/data/embedding_weights.npy"
     aae_model_path = "./AAE_model"
 
     NB_CLASSES = 6          # 6개의 카테고리
@@ -256,9 +280,10 @@ def main() :
     aae = AAE(reverse_word_dic_path, aae_model_path, embedding_weight_path)
     aae.make_AAE(BATCH_SIZE, SENTENCE_LENGTH, EMBED_SIZE, LATENT_SIZE, NB_CLASSES, NB_EPOCH)
 
-    # aae.train(...)
-    
+    aae.train(train_data_path, test_data_path)
+    #aae.train(train_data_path, test_data_path, load = True, 
+    #         disc_weights_path = "./AAE_model/weights/discriminator/epoch_22__disc-acc_0.4082__disc-loss_0.826283_.hdf5",
+    #         aae_weights_path = "./AAE_model/weights/aae/epoch_22__AAE-loss_0.0819__AEE-mse_0.081475_.hdf5")
 
 if __name__ == "__main__" :
     main()
-    
