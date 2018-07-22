@@ -1,7 +1,3 @@
-
-
-# Google Cloud Compute Engine에서 plot_model을 사용할 수 없어 주석처리함 
-
 import json
 import numpy as np
 import os, glob
@@ -47,7 +43,6 @@ class ModelMGPU(Model):
             return getattr(self._smodel, attrname)
 
         return super(ModelMGPU, self).__getattribute__(attrname)
-
 
 class AAE() :
     # gensim에서 훈련시킨 word2vec model을 저장함
@@ -122,8 +117,7 @@ class AAE() :
 
         # adversarial_autoencoder
         # encoder에서 나온 fake_or_real와 train함수의 ones와 비교
-        self.adversarial_autoencoder = Model(inputs = aae_input,
-                                             outputs = [reconstructed_sentences, fake_or_real])
+        self.adversarial_autoencoder = Model(inputs = aae_input, outputs = [reconstructed_sentences, fake_or_real])
         
         print("adversarial_autoencoder model\n", self.adversarial_autoencoder.summary())
         #plot_model(self.adversarial_autoencoder, self.pictures_path + "/adversarial_autoencoder.png",
@@ -145,7 +139,6 @@ class AAE() :
 
         latent_mean = Dense(self.latent_size, name = 'latent_mean', activation = 'sigmoid')(encoder_layer3)
         latent_var = Dense(self.latent_size, name = 'latent_var', activation = 'sigmoid')(encoder_layer3)
-
 
         batch_size = self.batch_size; latent_size = self.latent_size
         
@@ -178,22 +171,35 @@ class AAE() :
 
 
     def discriminator_model(self, random_input) :
-        dis_layer1 = Dense(512, name = 'discriminator_layer1')(random_input)
+        dis_layer1 = Dense(1024, name = 'discriminator_layer1')(random_input)
         layer1_activation = LeakyReLU()(dis_layer1)
-        dis_layer2 = Dense(256, name = 'discriminator_layer2')(layer1_activation)
+        dis_layer2 = Dense(1024, name = 'discriminator_layer2')(layer1_activation)
         layer2_activation = LeakyReLU()(dis_layer2)
+        dis_layer3 = Dense(1024, name = 'discriminator_layer3')(layer2_activation)
+        layer3_activation = LeakyReLU()(dis_layer3)
+        dis_layer4 = Dense(1024, name = 'discriminator_layer4')(layer3_activation)
+        layer4_activation = LeakyReLU()(dis_layer4)
+        dis_layer5 = Dense(1024, name = 'discriminator_layer5')(layer4_activation)
+        layer5_activation = LeakyReLU()(dis_layer5)
         dis_output = Dense(1, activation = 'sigmoid',
-                           name = 'discriminator_output')(layer2_activation)
+                           name = 'discriminator_output')(layer5_activation)
 
         return dis_output
-        
-
-    def category_predictor_model(self, nb_classes) :
-        pass
-
 
     # 이미 훈련한 모델을 재사용할 경우 load = True로 호출
-    def train(self, train_data_path, test_data_path, load = False, disc_weights_path = 0, aae_weights_path = 0) :
+    def train(self, train_data_path, test_data_path, load = False, disc_weights_path = 0, aae_weights_path = 0) :       
+        parallel_embedding_model = ModelMGPU(self.embedding_model, gpus = 2)
+        
+        parallel_discriminator = ModelMGPU(self.discriminator, gpus = 2)
+        parallel_discriminator.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+                                       
+        parallel_aae = ModelMGPU(self.adversarial_autoencoder, gpus = 2)
+        parallel_aae.compile(loss = ['mse', 'binary_crossentropy'], loss_weights = [0.999, 0.001], optimizer = 'Adam',
+                            metrics = [metrics.mse, metrics.binary_accuracy])
+        
+        print("discriminator metrics ======> ", parallel_discriminator.metrics_names)
+        print("adversarial_autoencoder metrics ======> ", parallel_aae.metrics_names)
+    
         # 파일 불러오기
         train_X = []; train_Y = []
     
@@ -208,59 +214,59 @@ class AAE() :
                 
         train_Y = np_utils.to_categorical(train_Y, self.nb_classes)
         train_X = np.array(train_X)
-
-        zeros = np.zeros(shape = (self.batch_size, 1))
-        ones = np.ones(shape = (self.batch_size, 1))
+        dataset_length = train_X.shape[0]
+        interval = (dataset_length // self.batch_size) + 1 
         
-        parallel_discriminator = ModelMGPU(self.discriminator, gpus = 2)
-        parallel_discriminator.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
-                                       
-        parallel_aae = ModelMGPU(self.adversarial_autoencoder, gpus = 2)
-        parallel_aae.compile(loss = ['mse', 'binary_crossentropy'], loss_weights = [0.999, 0.001], optimizer = 'Adam',
-                            metrics = [metrics.mse, metrics.binary_accuracy])
-
-        aae_latent_space_output = K.function([self.adversarial_autoencoder.layers[0].input],
-                                [self.adversarial_autoencoder.layers[6].output])
+        aae_latent_space_output = K.function([parallel_aae.layers[0].input],
+                                [parallel_aae.layers[3].layers[6].output])
         
-        embedding_model_output = K.function([self.embedding_model.layers[0].input],
-                                           [self.embedding_model.layers[1].output])  
+        embedding_model_output = K.function([parallel_embedding_model.layers[0].input],
+                                           [parallel_embedding_model.layers[4].output])  
         
         if load : # 저장한 weights를 불러옴
             print("weights를 불러옵니다.")
             parallel_discriminator.load_weights(disc_weights_path)
             parallel_aae.load_weights(aae_weights_path)
-                    
+        
         for epoch in range(self.nb_epoch) :
             # 매번 random한 data로 훈련함
-            index = np.random.choice(train_X.shape[0], self.batch_size, replace = False)
-            #index = np.random.randint(0, train_X.shape[0], self.batch_size)
-            selected_news = (train_X[index]).tolist()
-            latent_space_output_list = (embedding_model_output([selected_news])[0]).tolist()
             
-            # discriminator 훈련
-            # 가짜 input과 진짜 input 생성           
-            fake_input = aae_latent_space_output([latent_space_output_list])[0]
-            real_input = np.random.normal(size = (self.batch_size, self.latent_size))
-
-            fake_loss = parallel_discriminator.train_on_batch(fake_input, zeros)
-            real_loss = parallel_discriminator.train_on_batch(real_input, ones)
-
-            discriminator_loss = 0.5 * np.add(real_loss, fake_loss)
-
-            # generator 훈련
-            aae_loss = parallel_aae.train_on_batch(embedding_model_output([selected_news])[0],
-                            [embedding_model_output([selected_news])[0], ones])
+            discriminator_loss = 0; aae_loss = 0
+            print("\n\n\n\n\n", "epoch ===============> ", epoch, "[", interval, "]\n")
             
-            print("%d [D loss: %f, acc: %2f%%] [G loss: %f, mse: %f, acc: %2f%%]"%(epoch,
-                                                                      discriminator_loss[0], 100 * discriminator_loss[1],
-                                                                      aae_loss[0], aae_loss[1], 100 * aae_loss[2]))
+            for i in range(interval) :
+                selected_news = (train_X[i * self.batch_size : (i + 1) * self.batch_size]).tolist()
+                self.batch_size = len(selected_news)
+
+                latent_space_output_np = embedding_model_output([selected_news])[0]
+            
+                # discriminator 훈련
+                # 가짜 input과 진짜 input 생성           
+                fake_input = aae_latent_space_output([latent_space_output_np.tolist()])[0]
+                real_input = np.random.normal(size = (self.batch_size, self.latent_size))
+
+                zeros = np.zeros(shape = (self.batch_size, 1))
+                ones = np.ones(shape = (self.batch_size, 1))
+                
+                fake_loss = parallel_discriminator.train_on_batch(fake_input, zeros)
+                real_loss = parallel_discriminator.train_on_batch(real_input, ones)
+                
+                print("%d D [fake data] => loss : %f, acc : %2f%%    [real data] => loss : %f, acc : %2f%%"%(i, 
+                    fake_loss[0], 100 * fake_loss[1], real_loss[0], 100 * real_loss[1]))
+
+                # generator 훈련
+                aae_loss = parallel_aae.train_on_batch(latent_space_output_np,
+                                [latent_space_output_np, ones])
+            
+                print("    [G loss: %f, mse: %f, acc: %2f%%]\n"%(aae_loss[0], aae_loss[3], 100 * aae_loss[6]))
+                
             # weights 저장
             parallel_discriminator.save_weights(self.disc_weights_path + "/epoch_{:d}".format(epoch) +
                                     "__disc-acc_{:.4f}".format(discriminator_loss[1]) +
                                     "__disc-loss_{:4f}_".format(discriminator_loss[0]) + ".hdf5")
             parallel_aae.save_weights(self.aae_weights_path + "/epoch_{:d}".format(epoch) +
                                     "__AAE-loss_{:.4f}".format(aae_loss[0]) +
-                                    "__AEE-mse_{:4f}_".format(aae_loss[1]) + ".hdf5")
+                                    "__AEE-mse_{:4f}_".format(aae_loss[3]) + ".hdf5")
 
 def main() :     
     word_dic_path = "./training/word-dic.json"
@@ -271,19 +277,16 @@ def main() :
     aae_model_path = "./AAE_model"
 
     NB_CLASSES = 6          # 6개의 카테고리
-    BATCH_SIZE = 512
+    BATCH_SIZE = 2024
     SENTENCE_LENGTH = 300   # 한 뉴스는 최대 300개의 단어로 이루어져 있음
     EMBED_SIZE = 200
-    LATENT_SIZE = 100
+    LATENT_SIZE = 200
     NB_EPOCH = 500
         
     aae = AAE(reverse_word_dic_path, aae_model_path, embedding_weight_path)
     aae.make_AAE(BATCH_SIZE, SENTENCE_LENGTH, EMBED_SIZE, LATENT_SIZE, NB_CLASSES, NB_EPOCH)
 
     aae.train(train_data_path, test_data_path)
-    #aae.train(train_data_path, test_data_path, load = True, 
-    #         disc_weights_path = "./AAE_model/weights/discriminator/epoch_22__disc-acc_0.4082__disc-loss_0.826283_.hdf5",
-    #         aae_weights_path = "./AAE_model/weights/aae/epoch_22__AAE-loss_0.0819__AEE-mse_0.081475_.hdf5")
 
 if __name__ == "__main__" :
     main()
