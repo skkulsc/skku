@@ -5,14 +5,14 @@ import operator
 import numpy as np
 
 CATEGORIES = ['politics', 'economy', 'society', 'living', 'world', 'science']
-LABEL = {'politics' : 0, 'economy' : 1, 'society' : 2, 'living' : 3, 'world' : 4, 'science' : 5}
+LABEL = {'politics' : 0, 'economy' : 1, 'society' : 2,
+         'living' : 3, 'world' : 4, 'science' : 5}
 
 freq_dic = {}                       # 단어의 빈도 수를 저장하는 딕셔너리
-word_dic = {"PAD" : 0, "UNK" : 1}   # {id : 단어}
+word_dic = {"PAD_" : 0, "UNK_" : 1} # {id : 단어}
 word_dic_reverse = {}               # {단어 : id}
-ID = 2                              # (0 : PAD, 1 : UNK)
-NUM_WORDS = 100                     # 최소 NUM_WORDS 이상 나온 단어들만 사전에 저장
-MAX_LENGTH = 300                    # 최대 저장할 뉴스의 단어 개수
+ID = 2                              # (0 : PAD_, 1 : UNK_)
+NUM_WORDS = 10                      # 최소 NUM_WORDS 이상 나온 단어들만 사전에 저장
 
 content_path = "./naver_news/preprocessing_contents/"
 training_path = "./naver_news/training/words_" + str(NUM_WORDS)
@@ -49,8 +49,6 @@ def make_freq_dic(texts) :
 
         # n이 단어 사전에 없다면
         if not n in freq_dic :
-            # _MAX : 현재까지 저장된 단어의 개수
-            # _MAX의 값을 단어 n의 ID로 설정
             freq_dic[n] = 1
 
         # 이미 단어 사전에 존재하는 단어라면 1을 증가시킴  
@@ -59,23 +57,23 @@ def make_freq_dic(texts) :
 
 def make_word_dic(texts) :
     global word_dic
+    global MAX_LENGTH
 
     if (len(texts) <= 0) :
         return -1
 
-    texts = texts.strip()
-    words = texts.split(" ")
+    words = texts.strip().split(" ")
+
     results = []
     for n in words :
         # 단어 사전에 그 단어가 존재하지 않으면
         if not n in word_dic :
-            results.append(word_dic["UNK"])
+            results.append(word_dic["UNK_"])
         else :
             results.append(word_dic[n])
-
+            
     return results
-
-
+    
 def words_to_number(files) :
     X = [] # input
     Y = [] # label
@@ -97,11 +95,8 @@ def words_to_number(files) :
                 if (results == -1) :
                     pass
                 else :
-                    # 뉴스가 300단어 초과라면, 300단어 까지만 저장함
-                    if (len(results) > 300) : 
-                        results = results[ : 300]
-                        X.append(results)
-                        Y.append(label)
+                    X.append(results)
+                    Y.append(label)
 
     return X, Y
 
@@ -113,17 +108,6 @@ def number_to_words(number_list) :
         X.append(word_dic_reverse[word])
 
     return X
-
-def padding_sequences(lists) :
-    global MAX_LENGTH
-    
-    for i in range(len(lists)) :
-        padding = MAX_LENGTH - len(lists[i])
-        # 패딩을 해야하는 문장이라면
-        if (padding > 0) :
-            lists[i] = lists[i] + [0] * padding
-
-    return lists
     
 def main() :
     global NUM_WORDS
@@ -181,15 +165,16 @@ def main() :
             del freq_dic[key]
     print("NUM_WORDS = {} =====> len(freq_dic) = {}".format(NUM_WORDS, len(freq_dic)))
 
-    # 빈도수로 단어를
+    # 빈도수로 단어를 정렬
     sorted_dict = sorted(freq_dic.items(), key = operator.itemgetter(1), reverse = True)
 
     # 빈도수를 기준으로 사전에 순서대로 저장함
     for lists in sorted_dict :
         word_dic[lists[0]] = ID
         ID += 1
-    
+
     word_dic_reverse = {v : k for k, v in word_dic.items()} # 역순
+    print(word_dic_reverse[0], word_dic_reverse[1])
 
     # 단어를 숫자로 변환
     train_X, train_Y = words_to_number(train_files)
@@ -213,32 +198,28 @@ def main() :
     json.dump(word_dic_reverse, open(dic_reverse_file, "w", encoding = 'utf-8'))
     print("word_dic_reverse 저장")
 
-    # 데이터의 길이를 300으로 맞춤
-    padding_train = padding_sequences(train_X)
-    padding_test = padding_sequences(test_X)
-
     # 역순
-    padding_train_reverse = []
-    padding_test_reverse = []
-    for X in padding_train :
-        padding_train_reverse.append(number_to_words(X))
-    for X in padding_test :
-        padding_test_reverse.append(number_to_words(X))
+    train_reverse_X = []
+    test_reverse_X = []
+    for X in train_X :
+        train_reverse_X.append(number_to_words(X))
+    for X in test_X :
+        test_reverse_X.append(number_to_words(X))
         
     file_name = data_file + "train_result.json"
-    json.dump({"X" : padding_train, "Y" : train_Y},
+    json.dump({"X" : train_X, "Y" : train_Y},
               open(file_name, "w", encoding = 'utf-8'))
     
     file_name = data_file + "test_result.json"
-    json.dump({"X" : padding_test, "Y" : test_Y},
+    json.dump({"X" : test_X, "Y" : test_Y},
               open(file_name, "w", encoding = 'utf-8'))
 
     file_name = data_file + "train_reverse_result.json"
-    json.dump({"X" : padding_train_reverse, "Y" : train_Y},
+    json.dump({"X" : train_reverse_X, "Y" : train_Y},
               open(file_name, "w", encoding = 'utf-8'))
     
     file_name = data_file + "test_reverse_result.json"
-    json.dump({"X" : padding_test_reverse, "Y" : test_Y},
+    json.dump({"X" : test_reverse_X, "Y" : test_Y},
               open(file_name, "w", encoding = 'utf-8'))
 
 if __name__ == "__main__" :
