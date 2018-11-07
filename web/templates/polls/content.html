@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>NEWS INFO</title>
+		<meta charset = 'utf-8'>
+		<meta name = "viewport" content = "width=device-width, initial-scale=1">
+		<link rel = 'stylesheet', href = 'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css'>
+		<script src = "https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+		<script src = "http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	</head>
+	<body>
+		<br>
+		<button onclick="goBack()">Go to Previous Page</button>
+		<script>
+			function goBack() {
+				window.history.back();
+			}
+		</script>
+		<div class "container">
+			<p><br></p>
+			{% for news in read_data %}
+			<p> NEWSID : {{ news.news_id }} <br><br></p>
+			<p> CATEGORY : {{ news.category }} <br><br></p>
+			<p> DATE : {{ news.date }} <br><br></p>
+			<p> TITLE : {{ news.title }} <br><br></p>
+			<p> CONTENT : {{ news.content }} <br><br></p>
+			{% endfor %}
+		</div>
+	</body>
+</html>

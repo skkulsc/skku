@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		{% if user.is_authenticated == False %}
+		<style>html{display:none;}</style>
+		<meta http-equiv = "refresh", content = "0; url=/user/login">
+		{% endif %}
+
+		<title>NEWS INFO</title>
+		<meta charset = 'utf-8'>
+		<meta name = "viewport" content = "width=device-width, initial-scale=1">
+		<link rel = 'stylesheet', href= 'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css'>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+		<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+		<style>
+		.btn-group button {
+			background-color: #4CAF50;
+			border: 1px solid green;
+			color : white;
+			padding : 10px 24px;
+			cursor : pointer;
+			float: left;
+		}
+
+		.btn-group:after {
+			content : "";
+			clear : both;
+			display : table;
+		}
+		
+		.btn-group button:not(:last-child) {
+			border-right : none;
+		}
+
+		.btn-group button:hover {
+			background-color : #3e8e41;
+		}
+		</style>
+	</head>
+	<body>
+		<h1><B>테스트용 홈페이지</B></h1>
+		<br>
+
+		<div class = "btn-group">
+			<form action="" method = 'post'>
+				{% csrf_token %}
+				<button type="reset" onClick="window.location.href='/logout'">Logout</button>
+				<button onClick="window.location.reload()">Reload</button>
+			</form>
+		</div>
+		<br>
+
+		<form id="article_table" action="/articles/content/" method = 'post'>
+			{% csrf_token %}
+			<div class "container">
+				<h2><B>추천 뉴스</B></h2>
+				<table class = "table table-striped">
+					<thead>
+						<tr>
+							<td><B>ID</B></td>
+							<td><B>category</B></td>
+							<td><B>date</B></td>
+							<td><B>title</B></td>
+							<td><B>읽기</B></td>
+						</tr>
+					</thead>
+					<tbody>
+						{% for news in rec_news %}
+						<tr>
+							<td> <p id='news_id'> {{ news.news_id }} </p></td>
+							<td> <p id='news_category'> {{ news.category }} </p></td>
+							<td> <p id='news_date'> {{ news.date }} </p></td>
+							<td> <p id='news_title'> {{ news.title }} </p></td>
+							<td>
+								<button type="submit" name="show_content" value = {{ news.news_id }}>클릭</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			<br>
+
+			<div class "container">
+				<h2><B>최근에 읽은 뉴스</B></h2>
+				<table class = "table table-striped">
+					<thead>
+						<tr>
+							<td><B>ID</B></td>
+							<td><B>category</B></td>
+							<td><B>date</B></td>
+							<td><B>title</B></td>
+							<td><B>읽기</B></td>
+						</tr>
+					</thead>
+					<tbody>
+						{% for news in recent_news %}
+						<tr>
+							<td> <p id='news_id'> {{ news.news_id }} </p></td>
+							<td> <p id='news_category'> {{ news.category }} </p></td>
+							<td> <p id='news_date'> {{ news.date }} </p></td>
+							<td> <p id='news_title'> {{ news.title }} </p></td>
+							<td>
+								<button type="submit" name="show_content" value = {{ news.news_id }}>클릭</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			<br>
+
+			<div class "container">
+				<h2><B>랜덤으로 뽑은 기사</B></h2>
+				<table id = "random_news" class = "table table-striped">
+					<thead>
+						<tr>
+							<td><B>ID</B></td>
+							<td><B>category</B></td>
+							<td><B>date</B></td>
+							<td><B>title</B></td>
+							<td><B>읽기</B></td>
+						</tr>
+					</thead>
+					<tbody>
+						{% for news in newsInfo %}
+						<tr>
+							<td> <p id='news_id'> {{ news.news_id }} </p> </td>
+							<td> <p id='news_category'> {{ news.category }} </p> </td>
+							<td> <p id='news_date'> {{ news.date }} </p> </td>
+							<td> <p id='news_title'> {{ news.title }} </p> </td>
+							<td>
+								<button type="submit" name="show_content" value = {{  news.news_id }}>클릭</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</form>
+	</body>
+</html>

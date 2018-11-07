@@ -17,6 +17,7 @@ def save_jsonFile(dir_name, from_, to_, json_content) :
                               ensure_ascii = False)
         fp.write(json_val)
     print("                    [ {} ]부터 [ {} ]까지의 뉴스 저장 완료".format(from_, to_))
+    return
 
 # 원하는 경로에 폴더를 생성하는 함수
 def make_directory(dir_name) :
@@ -55,7 +56,8 @@ def init_naver(dir_name, fake_headers) :
     news_res = rq.get(news_url, headers = fake_headers)
     soup = BS(news_res.content, 'lxml')
 
-    with open(dir_name + "/naver_news.txt", "w", encoding = 'utf-8') as filePointer :
+    with open(dir_name + "/naver_news.txt", "w", encoding = 'utf-8') as \
+         filePointer :
         filePointer.write(soup.prettify())
 
     # naver 랭킹 뉴스 홈페이지
@@ -78,7 +80,7 @@ def main() :
 
     # fake userAgent 생성
     ua = UserAgent()
-    fake_headers = {"User-Agent" : ua.google}
+    fake_headers = {"User-Agent" : ua.chrome}
     
     # init_naver(dir_name, fake_headers)
 
@@ -152,3 +154,4 @@ def main() :
 
 if __name__ == "__main__" :
     main()
+    
