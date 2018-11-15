@@ -135,6 +135,8 @@ class MF() :
             rmse = tf.sqrt(tf.divide(tf.reduce_sum(tf.pow(sub, 2)), num_rates))
             rmse_val = tf.sqrt(tf.divide(tf.reduce_sum(tf.pow(sub_val, 2)), val_num_rates))
 
+        # 각각의 fold에 대해서 iters만큼의 training을 한 뒤, validation loss가 가장 작은 model을 선택해야함
+        
         self.final_rmse = np.inf # K개의 model중에서 가장 작은 값을 찾음
         self.best_results = {}
         self.test_table = 0
@@ -217,7 +219,7 @@ class MF() :
                 #          format(i, rmse_, lr_, rmse_val_, best_rmse)) 
                     
                 if (len(history_loss) >= 3) :
-                    # 현재 best validation RMSE가 이전에 저장된 3개 이상의 validation RMSE의 가장 작은 값보다 작다면 learning rate을 줄임
+                    # 현재 validation RMSE가 이전에 저장된 3개 이상의 validation RMSE의 가장 작은 값보다 작다면 learning rate을 줄임
                     if (min(history_loss[ : ]) >  best_rmse) :
                         lr_ = lr_ * self.decay
                         history_loss = []
@@ -232,6 +234,8 @@ class MF() :
                 self.test_table = test_table
                 
             self.best_rmse_history.append(best_rmse)
+            #print("len(training_table) = [{:5d}] -- len(testing_table) = [{:5d}]".format(
+            #    len(training_table), len(test_table)))
                   
         print("\nthe smallest validation RMSE : ", self.final_rmse)
         
@@ -245,3 +249,28 @@ class MF() :
         pred_matrix = np.dot(np.concatenate([self.learnt_W, self.learnt_W_bias], axis = 1), 
                              np.concatenate([self.learnt_H, self.learnt_H_bias], axis = 1).T) + self.global_mean
         return self.learnt_W, self.learnt_H, self.learnt_W_bias, self.learnt_H_bias, pred_matrix
+        
+    # test data에 대해 model이 예상하는 rating과 실제 rating을 비교함
+    def compare_count(self) :
+        pred_matrix = np.dot(np.concatenate([self.learnt_W, self.learnt_W_bias], axis = 1), 
+                             np.concatenate([self.learnt_H, self.learnt_H_bias], axis = 1).T) + self.global_mean
+        
+        top_n_dic = {}
+        for i in range(len(self.test_table)) :
+            user_Id = int(self.test_table.iloc[i][0])
+            news_Id = int(self.test_table.iloc[i][1])
+            rating_ = self.test_table.iloc[i][2]
+            
+            if user_Id not in top_n_dic.keys() :
+                top_n_dic[user_Id] = []
+                
+            top_n_dic[user_Id].append([news_Id, pred_matrix[self.user_dic[user_Id]][self.news_dic[news_Id]], rating_])
+        
+        # 각 user당 count으로 정렬
+        for key in list(top_n_dic.keys()) :
+            top_n_dic[key] = sorted(top_n_dic[key], key = operator.itemgetter(1), reverse = True)
+            
+        # userId 별로 정렬
+        final_n_dic = dict(sorted(top_n_dic.items(), key = operator.itemgetter(0), reverse = False))
+            
+        return final_n_dic

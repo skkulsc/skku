@@ -21,6 +21,7 @@ def condition(db_address) :
     print("user_id_set:{}".format(user_id_set))
     
     if (len(unique_newsID) / float(num_news)) < 0.001 :
+        print("len(unique_newsID) / float(num_news)) < 0.001 ---> ", len(unique_newsID) / float(num_news))
         return False
     
     total_data = []
@@ -31,6 +32,7 @@ def condition(db_address) :
     one_elements = len([element for element, count in counts.items() if count == 1])    
     common_per = (len(counts) - one_elements) / float(len(counts))
     if (len(counts) == one_elements or one_elements == 0) : # user들 간에 같이 읽은 news가 1개도 없거나 모두 동일 하다면
+        print("공통된 원소가 없음")
         return False
 
     return True

@@ -50,8 +50,8 @@ class AuthUser(models.Model):
     date_joined = models.DateTimeField()
     
     def __str__(self) :
-        return "id-{}_username-{}".format(self.id, self.username)
-            
+        return "[ id-{}_username-{} ]".format(self.id, self.username)   
+    
     class Meta:
         managed = False
         db_table = 'auth_user'
@@ -159,9 +159,44 @@ class UserNewsTable(models.Model):
     read_time = models.DateTimeField(blank=True, null=True)
     
     def __str__(self) :
-        return "tableID-{}_userID-{}_newsID-{}_count-{}_time-{}".format(self.id, self.user, self.news, self.count, self.read_time)
+        return "[ tableID-{}_userID-{}_newsID-{}_count-{}_readTime-{} ]".format(
+            self.id, self.user, self.news, self.count, self.read_time)
     
     class Meta:
         managed = False
         db_table = 'user_news_table'
-        unique_together = (('user', 'news'),)
+        unique_together = (("user", "news"),)
+
+class UserScrapTable(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)  # Field name made lowercase.
+    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
+    news = models.ForeignKey(NewsInfoTable, models.DO_NOTHING)
+    directory = models.CharField(max_length=128, default = '기본 폴더')
+    scrap_time = models.DateTimeField()
+
+    def __str__(self) :
+        return "[ tableID-{}_userID-{}_newsID-{}_dir-{}_scrapTime-{} ]".format(
+            self.id, self.user, self.news, self.directory, self.scrap_time)
+    
+    class Meta:
+        managed = False
+        db_table = 'user_scrap_table'
+        unique_together = (("user", "news"),)
+
+'''
+class UserScrapTable(models.Model):
+    id = models.AutoField(db_column='Id', primary_key=True)  # Field name made lowercase.
+    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
+    news = models.ForeignKey(NewsInfoTable, models.DO_NOTHING)
+    directory = models.CharField(max_length=128, blank=True, null=True)
+    scrap_time = models.DateTimeField()
+    
+    def __str__(self) :
+        return "[ tableID-{}_userID-{}_newsID-{}_dir-{}_scrapTime-{} ]".format(
+            self.id, self.user, self.news, self.directory, self.scrap_time)
+    
+    class Meta:
+        managed = False
+        db_table = 'user_scrap_table'
+        unique_together = (("user", "news"),)
+'''

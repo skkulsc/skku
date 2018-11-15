@@ -10,6 +10,7 @@
 	</head>
 	<body>
 		<br>
+		
 		<button onclick="goBack()">Go to Previous Page</button>
 		<script>
 			function goBack() {
@@ -19,12 +20,32 @@
 		<div class "container">
 			<p><br></p>
 			{% for news in read_data %}
-			<p> NEWSID : {{ news.news_id }} <br><br></p>
-			<p> CATEGORY : {{ news.category }} <br><br></p>
-			<p> DATE : {{ news.date }} <br><br></p>
-			<p> TITLE : {{ news.title }} <br><br></p>
-			<p> CONTENT : {{ news.content }} <br><br></p>
+			<p id = "news_id">NEWSID : {{ news.news_id }} <br><br></p>
+			<p id = "news_category"> CATEGORY : {{ news.category }} <br><br></p>
+			<p id = "news_date"> DATE : {{ news.date }} <br><br></p>
+			<p id = "news_title"> TITLE : {{ news.title }} <br><br></p>
+			<p id = "news_content"> CONTENT : {{ news.content }} <br><br></p>
+			
+			<form name = 'frmPopup' method = 'post'>
+				{% csrf_token %}
+				<button type = "submit" name = "scrap" onclick="open_pop()" value='add; {{ news.news_id }}'>
+					스크랩 하기
+				</button>
+				<button type = "submit" name = "scrap" onclick="open_pop()" value='cancle; {{ news.news_id }}'>
+					스크랩 취소
+				</button>
+			</form>
 			{% endfor %}
 		</div>
+	<script language='JavaScript'>
+		function open_pop() {
+			var frmPop = document.frmPopup;
+			var url = '/articles/scrap/';
+			window.open(url, 'popupView', 'width=600, height = 300');
+			frmPop.action = url;
+			frmPop.target = 'popupView';
+			frmPop.submit();
+		}
+	</script>
 	</body>
 </html>

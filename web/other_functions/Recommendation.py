@@ -176,6 +176,8 @@ class Rec_system() :
                 except Exception as e :
                     print("\nError in self.CBF_dict --- Rec_system class")
                     print("Error : \n{}\n".format(e))
+                    
+                print("userID : ", userID, " -> ", "CBF 통과 후 뉴스 개수 : ", len(rec_news_list))
 
                 # 나머지는 조회수가 가장 높은 news로 채움
                 if len(rec_news_list) < total :
@@ -214,6 +216,8 @@ class Rec_system() :
                     print("\nError in recommend --- more_1_ID --- Rec_system class")
                     print("Error : \n{}\n".format(e))
 
+                print("userID : ", userID, " -> ", "MF 통과 후 뉴스 개수 : ", len(rec_news_list))
+                
                 # CBF
                 if (len(rec_news_list) < total) :
                     
@@ -234,7 +238,9 @@ class Rec_system() :
                     except Exception as e :
                         print("\nError in self.CBF_dict --- Rec_system class")
                         print("Error : \n{}\n".format(e))
-
+                        
+                print("userID : ", userID, " -> ", "CBF 통과 후 뉴스 개수 : ", len(rec_news_list))
+                
                 # POP
                 if (len(rec_news_list) < total) :
                     records_by_pop = self.UserNewsTableObj.values("news").annotate(score = Count('news')).order_by('-score') # 중복 클릭 허용 X
