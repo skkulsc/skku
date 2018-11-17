@@ -10,4 +10,4 @@ dictionary_path = "./data/lsi/LSI_dictionary.dict"
 tfidf_model_path = "./data/lsi/TFIDF_training.model"
 lsi_model_path = "./data/lsi/LSI_training.model"
 
-DB_address = 'mysql+pymysql://lee:Skkuastro561!@35.230.61.91/rec_system?charset=utf8mb4'
+DB_address = '...'
