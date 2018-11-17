@@ -78,8 +78,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'rec_system',
         'USER' : 'lee',
-        'PASSWORD' : '...',
-        'HOST' : '...',
+        'PASSWORD' : 'Skkuastro561!',
+        'HOST' : '35.230.61.91',
     }
 }
 

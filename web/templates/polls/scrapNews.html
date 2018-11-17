@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>스크랩한 뉴스</title>
+		<meta charset = 'utf-8'>
+		<meta name = 'viewport' content = 'width=device-width, initial-scale=1'>
+		<link rel = 'stylesheet', href = 'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css'>
+		<script src = 'https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js'></script>
+		<script src = 'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js'></script>
+
+	<style>
+	.btn-group button {
+		background-color : #4CAF50;
+		border : 1px solid green;
+		color : white;
+		padding : 10px 24px;
+		cursor : pointer;
+		float : left;
+	}
+	.btn-group:after {
+		content : "";
+		clear : both;
+		display : table;
+	}
+	.btn-group button:not(:last-chid) {
+		border-right : none;
+	}
+	.btn-group button:hover {
+		background-color : #3e8e41;
+	}
+	</style>
+	<body>
+		<h1><B>스크랩한 뉴스</B></h1>
+		<br>
+
+		<button type = 'button' onClick = 'goBack()'>이전 페이지로 돌아가기</button>
+		<br>
+
+		<form name = 'scrapTable' method = 'post'>
+			{% csrf_token %}
+			<div>
+				<table class = "table table-striped">
+					<thead>
+						<tr>
+							<td><B>ID</B></td>
+							<td><B>category</B></td>
+							<td><B>date</B></td>
+							<td><B>title</B></td>
+							<td><B>읽기</B></td>
+							<td><B>스크랩 취소</B></td>
+						</tr>
+					</thead>
+					<tbody>
+						{% for news in scrapNews %}
+						<tr>
+							<td> <p id = 'news_id'> {{ news.news_id }} </p></td>
+							<td> <p id = 'news_category'> {{ news.category }} </p></td>
+							<td> <p id = 'news_date'> {{ news.date }} </p></td>
+							<td> <p id = 'news_title'> {{ news.title }} </p></td>
+							<td>
+								<button type = "submit" name = "scrap" onclick = "open_pop('/articles/content/')" value = "{{news.news_id}}">클릭</button>
+							</td>
+							<td>
+								<button type = "submit" name = "scrap" onclick = "open_pop('/articles/scrap/')" value = "cancle; {{ news.news_id }}; refresh}">취소</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</form>
+
+	<script language="JavaScript">
+		function open_pop(url) {
+			var frmPop = document.scrapTable;
+			var url = url
+			if (url == "/articles/content/") {
+				<!-- id = frmPop의 action 속성의 값을 url로 바꿈 -->
+				frmPop.action = url;
+				frmPop.submit()
+			}
+
+			else if (url == "/articles/scrap/") {
+				frmPop.action = url;
+				frmPop.submit();
+			}
+		}
+	</script>
+
+	<script language="JavaScript">
+		function goBack() {
+			window.location.href='/articles'
+		}
+	</script>
+
+	</body>
+</html>

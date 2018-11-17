@@ -10,10 +10,12 @@ import datetime
 import threading
 from sqlalchemy import create_engine
 
+db_adress = 'mysql+pymysql://lee:Skkuastro561!@35.230.61.91/rec_system?charset=utf8mb4'
+engine = create_engine(db_adress)
+
 try :
-    db_adress = '...'
     rec_system = Recommendation.Rec_system(NewsInfoTable.objects, AuthUser.objects, UserNewsTable.objects, 
-                                       create_engine(db_adress))
+                                       engine)
     
     rec_system.do_MF()
 except Exception as e :
@@ -32,7 +34,8 @@ except Exception as e :
 
 def index(request, con = 0) :
     
-    global db_address
+    global engine
+    
     '''
         user가 로그인에 성공한 뒤 호출되는 함수
     '''
@@ -41,7 +44,7 @@ def index(request, con = 0) :
         request.user, datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
                 
     userID = AuthUser.objects.filter(username = request.user)[0].id
-    engine = create_engine(db_adress)
+
     
     sql = "select * from user_news_table where user_id = {} order by read_time DESC".format(userID)  
     user_read_news = pd.read_sql(sql, con = engine)
@@ -71,17 +74,19 @@ def show_content(request) :
     userID = AuthUser.objects.filter(username = request.user)[0].id
     post_keys = list(request.POST.keys())
     
-    if ('scrap' in post_keys) :
-        print("request.POST['scrap'] : ", request.POST['scrap'])
-        
-        return HttpResponse(status=201)
-        
-    elif ('user_read_news_ID' in post_keys) :
+    read_data = dict()
+    
+    if 'scrap' in post_keys :
+        news_id = int(request.POST['scrap'])
+    elif 'user_read_news_ID' in post_keys :
         news_id = int(request.POST['user_read_news_ID'])
-        news_data = NewsInfoTable.objects.filter(news_id = news_id).values()
 
-        print("--------------------> [{}] user가 [{}] id의 news를 읽음 --- {}".format(
-            request.user, news_id, datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
+    news_data = NewsInfoTable.objects.filter(news_id = news_id).values()
+
+    print("--------------------> [{}] user가 [{}] id의 news를 읽음 --- {}".format(
+        request.user, news_id, datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
+    
+    if ('user_read_news_ID' in post_keys) :
         try :
             user_movie_row = UserNewsTable.objects.filter(user = userID, news = news_id)
             length = len(user_movie_row)
@@ -111,11 +116,20 @@ def show_content(request) :
             print("\nError in show_content")
             print(e, "\n")
 
-        read_data = {'read_data' : news_data}    
-        return render(request, 'polls/content.html', read_data)
+    read_data['read_data'] = news_data
+    if ('scrap' in post_keys) :
+        read_data['scrap'] = True
+    else :
+        read_data['scrap'] = False
+        
+    return render(request, 'polls/content.html', read_data)
 
 def scrap(request) :
-    what, newsID = request.POST['scrap'].split('; ')
+    post_list = request.POST['scrap'].split('; ')
+    
+    what = post_list[0]
+    newsID = post_list[1]
+        
     userID = AuthUser.objects.filter(username = request.user)[0].id
     user_movie_row = UserScrapTable.objects.filter(user = userID, news = newsID)
     
@@ -125,16 +139,22 @@ def scrap(request) :
         if (what == 'add') :
             return render(request, 'polls/scrap.html', {'cannot_add' : True})
         
-        # UserScrapTable에 추가
+        # UserScrapTable에서 삭제
         else :
             UserScrapTable.objects.filter(user = AuthUser.objects.get(id = userID),
                                           news = NewsInfoTable.objects.get(news_id = newsID)).delete()
             
-            return render(request, 'polls/scrap.html', {'info' : 'delete',
-                                                        'username' : request.user,
-                                                        'news_id' : newsID,
-                                                        'time' : timezone.localtime()
-                                                       })
+            if (len(post_list) == 2) :
+                return render(request, 'polls/scrap.html', {'info' : 'delete',
+                                                            'username' : request.user,
+                                                            'news_id' : newsID,
+                                                            'time' : timezone.localtime()
+                                                           })
+            elif (len(post_list) == 3) : # scrapNews 페이지에서 삭제를 한 경우
+                return show_scrapNews(request)
+            
+            else :
+                return HttpResponse("Error in post_list")
 
     # scrap한 적이 없는 뉴스임
     else :
@@ -142,7 +162,7 @@ def scrap(request) :
         if (what == 'cancle') :
             return render(request, 'polls/scrap.html', {'cannot_cancle' : True})
         
-        # UserScrapTable에서 제거
+        # UserScrapTable에 추가
         else :
             # default directory = '기본 폴더'
             data = UserScrapTable(user = AuthUser.objects.get(id = userID),
@@ -155,8 +175,19 @@ def scrap(request) :
                                                         'news_id' : newsID,
                                                         'time' : timezone.localtime()
                                                        })
-
-    print("what = {} - userID = {} - newsID = {}".format(what, userID, newsID))
     
 def show_scrapNews(request) :
-    return HttpResponse("")
+    global engine
+    
+    userID = AuthUser.objects.filter(username = request.user)[0].id
+
+    sql = "select * from user_scrap_table where user_id = {} order by scrap_time DESC".format(userID)      
+    user_scrap_news = pd.read_sql(sql, con = engine)
+    scrapNews = dict()
+    scrapNews['scrapNews'] = []
+    for idx, row in user_scrap_news.iterrows() :
+        scrapNews['scrapNews'].append(NewsInfoTable.objects.get(news_id = row[2]))
+        
+    print("scrapNews:\n{}\n".format(scrapNews))
+    
+    return render(request, 'polls/scrapNews.html', scrapNews)

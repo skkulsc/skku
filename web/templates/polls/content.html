@@ -11,12 +11,8 @@
 	<body>
 		<br>
 		
-		<button onclick="goBack()">Go to Previous Page</button>
-		<script>
-			function goBack() {
-				window.history.back();
-			}
-		</script>
+		<button type = 'button' onclick="goBack('{{ scrap }}')">이전 페이지로 돌아가기</button>
+
 		<div class "container">
 			<p><br></p>
 			{% for news in read_data %}
@@ -37,6 +33,20 @@
 			</form>
 			{% endfor %}
 		</div>
+
+	<script language = 'JavaScript' >
+		function goBack(is_scrap) {
+			var status = is_scrap
+			<!-- 스크랩 화면에서 들어온 경우, 홈페이지를 새로 업데이트함 -->
+			if (status == 'True') {
+				window.location.href = '/articles/scrapNews';
+			}
+			else {
+				window.history.back();
+			}
+		}
+	</script>
+
 	<script language='JavaScript'>
 		function open_pop() {
 			var frmPop = document.frmPopup;
