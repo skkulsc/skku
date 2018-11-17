@@ -10,7 +10,7 @@ import datetime
 import threading
 from sqlalchemy import create_engine
 
-db_adress = 'mysql+pymysql://lee:Skkuastro561!@35.230.61.91/rec_system?charset=utf8mb4'
+db_adress = '...'
 engine = create_engine(db_adress)
 
 try :
