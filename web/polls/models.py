@@ -45,9 +45,11 @@ class AuthUser(models.Model):
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=150)
     email = models.CharField(max_length=254)
+    gender = models.CharField(max_length=3, blank=True, null=True)
     is_staff = models.IntegerField()
     is_active = models.IntegerField()
     date_joined = models.DateTimeField()
+    birthday = models.DateField(blank=True, null=True)
     
     def __str__(self) :
         return "[ id-{}_username-{} ]".format(self.id, self.username)   

@@ -15,6 +15,8 @@ class signup(View) :
         return render(request, 'user/signup.html')
 
     def post(self, request, *args, **kwargs) :
+        print("SignUp Post:\n{}\n".format(request.POST))
+        
         condition = False
 
         response = HttpResponse("Failed Sign Up")
@@ -22,6 +24,11 @@ class signup(View) :
         createPW = request.POST['psw']
         createPW_repeat = request.POST['psw-repeat']
         createE = request.POST['email']
+
+        createGender = request.POST['gender']
+        createYear = request.POST['year']
+        createMonth = request.POST['month']
+        createDay = request.POST['day']
         
         try :
             User.objects.get(username = createID)
@@ -35,8 +42,25 @@ class signup(View) :
             return render(request, 'user/login.html', {'overlap' : True})
 
         else :
-            user = User.objects.create_user(createID, createE, createPW)
+            '''
+            user = AuthUser(username = createID,
+                            email = createE,
+                            password = createPW,
+                            gender = createGender,
+                            birthday = createYear + '-' + createMonth + '-' + createDay)
             user.save()
+            '''
+
+            user = User.objects.create_user(username = createID, 
+                                            email = createE, 
+                                            password = createPW)
+            user.save()
+            
+            user = AuthUser.objects.get(username = createID)            
+            user.birthday = createYear + '-' + createMonth + '-' + createDay
+            user.gender = createGender
+            user.save()
+
             return render(request, 'user/login.html')
 
 class login(View) :
