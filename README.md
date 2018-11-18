@@ -1,2 +1,2 @@
 # skku
-졸업작품
+confidence 구현
