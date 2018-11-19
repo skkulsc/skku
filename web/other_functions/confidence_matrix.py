@@ -114,4 +114,11 @@ class conf_matrix() :
        
     
     def supplement_conf_matrix_local(self) :
-        pass 
+        # user가 scrap한 뉴스에 가중치를 부여
+        scrapList = [[self.userList[user_id], self.newsList[news_id]] for user_id, news_id in 
+                             zip(self.userScrapTable['user_id'].tolist(), self.userScrapTable['news_id'].tolist())]
+        
+        for user_id, news_id in scrapList :
+            self.conf_matrix[user_id][news_id] += 0.5
+            
+            
