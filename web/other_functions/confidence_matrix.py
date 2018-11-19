@@ -111,14 +111,22 @@ class conf_matrix() :
             # 한 뉴스에 대해서 모든 user들의 가중치 업데이트
             for userID in list(userList.keys()) :
                 self.conf_matrix[self.userList[userID]][self.newsList[newsID]] += ratio_ageGroup[newsID][ageGroup_dict[userID] - 1]
-       
-    
+           
     def supplement_conf_matrix_local(self) :
-        # user가 scrap한 뉴스에 가중치를 부여
+        # user가 scrap한 뉴스에 가중치를 부여        
+        # user가 scrap을 많이 할수록, confidence에 더해지는 값이 작어짐.
+        
+        # [[user_id, news_id], [user_id, news_id], [user_id, news_id], ... ]
         scrapList = [[self.userList[user_id], self.newsList[news_id]] for user_id, news_id in 
                              zip(self.userScrapTable['user_id'].tolist(), self.userScrapTable['news_id'].tolist())]
-        
-        for user_id, news_id in scrapList :
-            self.conf_matrix[user_id][news_id] += 0.5
+                
+        for userID in list(self.userList.keys()) :
+            scrapNews = [elements[1] for elements in scrapList if elements[0] == self.userList[userID]]
+            nums_of_scrap = len(scrapNews)
+            nums_of_readNews = len(self.userNewsTable.loc[self.userNewsTable['user_id'] == userID])
             
-            
+            # 1개 이상의 뉴스를 읽었고, 1개 이상의 news를 스크랩했을 경우
+            if (readNews and nums_of_scrap) :
+                value = ((nums_of_readNews - nums_of_scrap) / float(nums_of_readNews))
+                for newsID in scrapNews :
+                    self.conf_matrix[ self.userList[userID] ][ newsID ] += value
