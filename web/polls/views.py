@@ -2,36 +2,13 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 
-from .models import NewsInfoTable, AuthUser, UserNewsTable, UserScrapTable
-from other_functions import Recommendation, Threading
+from .models import UserScrapTable
+from other_functions.start import *
 
-import pandas as pd
-import datetime
 import threading
-from sqlalchemy import create_engine
-
-db_adress = '...'
-engine = create_engine(db_adress)
-
-try :
-    rec_system = Recommendation.Rec_system(NewsInfoTable.objects, AuthUser.objects, UserNewsTable.objects, 
-                                       engine)
-    
-    rec_system.do_MF()
-except Exception as e :
-    print("\nError in initial rec_system --- views.py")
-    print("Error:\n{}\n".format(e))
-    
-try :
-    # 순차적으로 matrix factorizaton을 수행함
-    queue = Threading.Queue()    
-    t = Threading.ThreadMF(queue)
-    t.setDaemon(True)
-    t.start()
-except Exception as e :
-    print("\nError in initial Queue --- views.py")
-    print("Error:\n{}\n".format(e))
-
+import pandas as pd
+from datetime import datetime
+   
 def index(request, con = 0) :
     
     global engine
@@ -41,7 +18,7 @@ def index(request, con = 0) :
     '''
     
     print("--------------------> [{}] user가 접속함 ---- {}".format(
-        request.user, datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
+        request.user, datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
                 
     userID = AuthUser.objects.filter(username = request.user)[0].id
 
@@ -69,7 +46,7 @@ def show_content(request) :
         user가 어떤 news를 클릭했을 때, 호출되는 함수
     '''
     global rec_system
-    global queue
+    global recSystem_queue
     
     userID = AuthUser.objects.filter(username = request.user)[0].id
     post_keys = list(request.POST.keys())
@@ -84,7 +61,7 @@ def show_content(request) :
     news_data = NewsInfoTable.objects.filter(news_id = news_id).values()
 
     print("--------------------> [{}] user가 [{}] id의 news를 읽음 --- {}".format(
-        request.user, news_id, datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
+        request.user, news_id, datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
     
     if ('user_read_news_ID' in post_keys) :
         try :
@@ -110,7 +87,7 @@ def show_content(request) :
                 data.save()
 
             rec_system.update_table(NewsInfoTableObj = None, AuthUserObj = None, UserNewsTableObj = UserNewsTable.objects)
-            queue.put([rec_system, userID, 200, 100, 0.001, 0.9, 0.01, 10, 'adam'])
+            recSystem_queue.put([rec_system, userID, 200, 100, 0.001, 0.9, 0.01, 10, 'adam'])
 
         except Exception as e :
             print("\nError in show_content")

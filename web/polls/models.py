@@ -185,20 +185,16 @@ class UserScrapTable(models.Model):
         db_table = 'user_scrap_table'
         unique_together = (("user", "news"),)
 
-'''
-class UserScrapTable(models.Model):
+class UserNewsTimeTable(models.Model):
     id = models.AutoField(db_column='Id', primary_key=True)  # Field name made lowercase.
     user = models.ForeignKey(AuthUser, models.DO_NOTHING)
     news = models.ForeignKey(NewsInfoTable, models.DO_NOTHING)
-    directory = models.CharField(max_length=128, blank=True, null=True)
-    scrap_time = models.DateTimeField()
+    reading_time = models.IntegerField()
     
     def __str__(self) :
-        return "[ tableID-{}_userID-{}_newsID-{}_dir-{}_scrapTime-{} ]".format(
-            self.id, self.user, self.news, self.directory, self.scrap_time)
+        return "[ tableID - {}_userID-{}_newsID-{}_readingTime-{} ]".format(
+            self.id, self.user, self.news, self.reading_time)
     
     class Meta:
         managed = False
-        db_table = 'user_scrap_table'
-        unique_together = (("user", "news"),)
-'''
+        db_table = 'user_news_time_table'

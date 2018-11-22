@@ -34,20 +34,19 @@
 			{% endfor %}
 		</div>
 
-	<script language = 'JavaScript' >
+	<script language = "JavaScript" >
 		function goBack(is_scrap) {
 			var status = is_scrap
-			<!-- 스크랩 화면에서 들어온 경우, 홈페이지를 새로 업데이트함 -->
 			if (status == 'True') {
 				window.location.href = '/articles/scrapNews';
 			}
-			else {
-				window.history.back();
+			else { 
+				window.location.href = '/articles';
 			}
 		}
 	</script>
 
-	<script language='JavaScript'>
+	<script language="JavaScript">
 		function open_pop() {
 			var frmPop = document.frmPopup;
 			var url = '/articles/scrap/';

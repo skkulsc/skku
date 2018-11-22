@@ -44,8 +44,8 @@ class conf_matrix() :
         read_news_length, self.newsList = self.make_ID_dic(userNewsTable, 'news_id')
         existing_user_length, self.userList = self.make_ID_dic(userNewsTable, 'user_id')
         
-        genderList = [authUserTable.loc[authUserTable['id'] == userID]['gender'].values[0] for userID in list(userList.keys())]
-        birthdayList = [authUserTable.loc[authUserTable['id'] == userID]['birthday'].values[0] for userID in list(userList.keys())] 
+        genderList = [authUserTable.loc[authUserTable['id'] == userID]['gender'].values[0] for userID in list(self.userList.keys())]
+        birthdayList = [authUserTable.loc[authUserTable['id'] == userID]['birthday'].values[0] for userID in list(self.userList.keys())] 
         
         ageGroup_dict = ageGroup_calculate(self.userList, birthdayList)
         gender_dict = {username : gender for username, gender in zip(self.userList, genderList)}

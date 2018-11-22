@@ -54,7 +54,7 @@ ROOT_URLCONF = 'recommendation.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['/home/arc3577/web/templates',],
+        'DIRS': ['/home/arc3577/git_files/branches/scrapping-confidence/skku/web/templates',],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,8 +78,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'rec_system',
         'USER' : 'lee',
-        'PASSWORD' : '...',
-        'HOST' : '...',
+        'PASSWORD' : 'Skkuastro561!',
+        'HOST' : '35.230.61.91',
     }
 }
 
