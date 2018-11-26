@@ -18,7 +18,6 @@ def index(request, con = 0) :
         user가 로그인에 성공한 뒤 호출되는 함수
     '''
     if 'back' in list(request.POST.keys()) : # 어떤 news를 읽은 뒤 다시 /aritlces 로 이동하는 경우 읽은 시간을 체크
-        print("back : ", request.POST['back'])
         userID = AuthUser.objects.filter(username = request.user)[0].id
         newsID = int(request.POST['back'])
         timeTable_queue.put([time_table, userID, newsID, datetime.now()])

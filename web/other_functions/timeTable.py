@@ -3,8 +3,6 @@ from polls.models import UserNewsTimeTable
 
 class TimeTable() :
     def __init__(self) :
-        #self.engine = engine
-        #self.update_userID()
         self.userReadingDic = dict()
 
     def update_userReadingDic(self, userID, newsID, dateTime) :
