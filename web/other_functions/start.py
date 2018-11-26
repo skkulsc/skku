@@ -17,8 +17,7 @@ except Exception as e :
 
 # TimeTable class
 try :
-    time_table = timeTable.TimeTable(engine)
-    time_table.update_userID()
+    time_table = timeTable.TimeTable()
 
 except Exception as e :
     print("\nError in initial time_table --- other_functions.start.py")
@@ -28,7 +27,7 @@ except Exception as e :
 try :
     # 순차적으로 matrix factorizaton을 수행함
     recSystem_queue = Threading.Queue()    
-    recSystem_thread = Threading.ThreadMF(recSystem_queue)
+    recSystem_thread = Threading.ThreadMF_forRec(recSystem_queue)
     recSystem_thread.setDaemon(True)
     recSystem_thread.start()
 except Exception as e :
@@ -39,7 +38,7 @@ except Exception as e :
 try :
     # 순차적으로 update를 수행함
     timeTable_queue = Threading.Queue()
-    timeTable_thread = Threading.ThreadMF(timeTable_queue)
+    timeTable_thread = Threading.ThreadMF_forTime(timeTable_queue)
     timeTable_thread.setDaemon(True)
     timeTable_thread.start()
 

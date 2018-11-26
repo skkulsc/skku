@@ -10,8 +10,11 @@
 	</head>
 	<body>
 		<br>
-		
-		<button type = 'button' onclick="goBack('{{ scrap }}')">이전 페이지로 돌아가기</button>
+		<form name = 'goPreviousPage' method = 'post'>
+			{% csrf_token %}
+			<button type = 'submit' name = 'back' onclick="goBack('{{ scrap }}')" value = '{{ newsID }}'>
+				이전 페이지로 돌아가기
+			</button>
 
 		<div class "container">
 			<p><br></p>
@@ -37,11 +40,16 @@
 	<script language = "JavaScript" >
 		function goBack(is_scrap) {
 			var status = is_scrap
+			var goPreviousPage = document.goPreviousPage;
 			if (status == 'True') {
-				window.location.href = '/articles/scrapNews';
+				goPreviousPage.action = '/articles/scrapNews/';
+				goPreviousPage.submit();
+				<!-- window.location.href = '/articles/scrapNews'; -->
 			}
 			else { 
-				window.location.href = '/articles';
+				goPreviousPage.action = '/articles/';
+				goPreviousPage.submit();
+				<!-- window.location.href = '/articles'; -->
 			}
 		}
 	</script>

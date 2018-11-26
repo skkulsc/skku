@@ -206,7 +206,7 @@ class Rec_system() :
                         top_user_lists = top_user_lists[ : int(len(top_user_lists) * (1 / (1 + self.num_outlier)))]
                     more_1_ID = [news_id for news_id, counts in top_user_lists]
                     range_ = len(more_1_ID) * float(self.common_dic[userID] / np.sum(list(self.common_dic.values())))
-                    more_1_ID = more_1_ID[ : int(range_)]
+                    more_1_ID = more_1_ID[ : min(7, int(range_))]
                     
                     for ID in more_1_ID :
                         if ID not in newsId_list :

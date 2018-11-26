@@ -9,14 +9,20 @@ import threading
 import pandas as pd
 from datetime import datetime
    
-def index(request, con = 0) :
-    
+def index(request, con = 0) :        
     global engine
+    global time_table
+    global timeTable_queue
     
     '''
         user가 로그인에 성공한 뒤 호출되는 함수
     '''
-    
+    if 'back' in list(request.POST.keys()) : # 어떤 news를 읽은 뒤 다시 /aritlces 로 이동하는 경우 읽은 시간을 체크
+        print("back : ", request.POST['back'])
+        userID = AuthUser.objects.filter(username = request.user)[0].id
+        newsID = int(request.POST['back'])
+        timeTable_queue.put([time_table, userID, newsID, datetime.now()])
+        
     print("--------------------> [{}] user가 접속함 ---- {}".format(
         request.user, datetime.now().strftime("%Y/%m/%d_%H:%M:%S")))
                 
@@ -47,6 +53,8 @@ def show_content(request) :
     '''
     global rec_system
     global recSystem_queue
+    global time_table
+    global timeTable_queue
     
     userID = AuthUser.objects.filter(username = request.user)[0].id
     post_keys = list(request.POST.keys())
@@ -57,6 +65,8 @@ def show_content(request) :
         news_id = int(request.POST['scrap'])
     elif 'user_read_news_ID' in post_keys :
         news_id = int(request.POST['user_read_news_ID'])
+        
+    timeTable_queue.put([time_table, userID, news_id, datetime.now()])
 
     news_data = NewsInfoTable.objects.filter(news_id = news_id).values()
 
@@ -94,6 +104,7 @@ def show_content(request) :
             print(e, "\n")
 
     read_data['read_data'] = news_data
+    read_data['newsID'] = news_id
     if ('scrap' in post_keys) :
         read_data['scrap'] = True
     else :
