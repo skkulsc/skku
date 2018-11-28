@@ -129,6 +129,9 @@ class Rec_system() :
         return DB_list
         
     def recommend(self, userID, newsId_list, context) :
+        content_list = []
+        mf_list = []
+        
         # 랜덤으로 고른 뉴스
         context['newsInfo'] = self.extract_newsList()
         
@@ -168,6 +171,7 @@ class Rec_system() :
                     for idx in idx_list :
                         ID, date, title = final_list[idx]
                         if (ID not in newsId_list) and (ID not in rec_news_list) and (title.strip() not in title_list) : # 중복방지
+                            content_list.append(ID)
                             rec_news_list.append(ID)
                             title_list.append(title.strip())
 
@@ -176,7 +180,8 @@ class Rec_system() :
                 except Exception as e :
                     print("\nError in self.CBF_dict --- Rec_system class")
                     print("Error : \n{}\n".format(e))
-                    
+                
+                rec_news_list = rec_news_list[ : min(12, len(rec_news_list))]
                 print("userID : ", userID, " -> ", "CBF 통과 후 뉴스 개수 : ", len(rec_news_list))
 
                 # 나머지는 조회수가 가장 높은 news로 채움
@@ -206,10 +211,11 @@ class Rec_system() :
                         top_user_lists = top_user_lists[ : int(len(top_user_lists) * (1 / (1 + self.num_outlier)))]
                     more_1_ID = [news_id for news_id, counts in top_user_lists]
                     range_ = len(more_1_ID) * float(self.common_dic[userID] / np.sum(list(self.common_dic.values())))
-                    more_1_ID = more_1_ID[ : min(7, int(range_))]
+                    more_1_ID = more_1_ID[ : min(6, int(range_))]
                     
                     for ID in more_1_ID :
                         if ID not in newsId_list :
+                            mf_list.append(ID)
                             rec_news_list.append(ID)
 
                 except Exception as e :
@@ -229,6 +235,7 @@ class Rec_system() :
                         for idx in idx_list :
                             ID, date,  title = final_list[idx]
                             if (ID not in newsId_list) and (ID not in rec_news_list) and (title.strip() not in title_list) : # 중복방지
+                                content_list.append(ID)
                                 rec_news_list.append(ID)
                                 title_list.append(title.strip())
 
@@ -239,8 +246,9 @@ class Rec_system() :
                         print("\nError in self.CBF_dict --- Rec_system class")
                         print("Error : \n{}\n".format(e))
                         
+                rec_news_list = rec_news_list[ : min(12, len(rec_news_list))]        
                 print("userID : ", userID, " -> ", "CBF 통과 후 뉴스 개수 : ", len(rec_news_list))
-                
+                  
                 # POP
                 if (len(rec_news_list) < total) :
                     records_by_pop = self.UserNewsTableObj.values("news").annotate(score = Count('news')).order_by('-score') # 중복 클릭 허용 X
@@ -254,3 +262,6 @@ class Rec_system() :
                 
                 context['rec_news'] = self.get_news_from_ID(rec_news_list)
                 random.shuffle(context['rec_news'])
+        
+        print("mf_list : {}\n".format(mf_list))
+        print("content_list : {}\n".format(content_list))

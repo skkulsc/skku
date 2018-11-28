@@ -58,10 +58,10 @@
 							<td> <p id = 'news_date'> {{ news.date }} </p></td>
 							<td> <p id = 'news_title'> {{ news.title }} </p></td>
 							<td>
-								<button type = "submit" name = "scrap" onclick = "open_pop('/articles/content/')" value = "{{news.news_id}}">클릭</button>
+								<button type = "submit" name = "from_scrap" onclick = "open_pop('/articles/content/')" value = "{{news.news_id}}">클릭</button>
 							</td>
 							<td>
-								<button type = "submit" name = "scrap" onclick = "open_pop('/articles/scrap/')" value = "cancle; {{ news.news_id }}; refresh}">취소</button>
+								<button type = "submit" name = "scrap_cancle" onclick = "open_pop('/articles/scrap/')" value = "{{ news.news_id }}; refresh}">취소</button>
 							</td>
 						</tr>
 						{% endfor %}

@@ -46,7 +46,6 @@ def index(request, con = 0) :
         return context
 
 def show_content(request) :
-    
     '''
         user가 어떤 news를 클릭했을 때, 호출되는 함수
     '''
@@ -59,9 +58,9 @@ def show_content(request) :
     post_keys = list(request.POST.keys())
     
     read_data = dict()
-    
-    if 'scrap' in post_keys :
-        news_id = int(request.POST['scrap'])
+
+    if 'from_scrap' in post_keys :
+        news_id = int(request.POST['from_scrap'])       
     elif 'user_read_news_ID' in post_keys :
         news_id = int(request.POST['user_read_news_ID'])
         
@@ -104,19 +103,22 @@ def show_content(request) :
 
     read_data['read_data'] = news_data
     read_data['newsID'] = news_id
-    if ('scrap' in post_keys) :
-        read_data['scrap'] = True
+    if ('from_scrap' in post_keys) :
+        read_data['from_scrap'] = True
     else :
-        read_data['scrap'] = False
-        
+        read_data['from_scrap'] = False
+
     return render(request, 'polls/content.html', read_data)
 
 def scrap(request) :
-    post_list = request.POST['scrap'].split('; ')
-    
-    what = post_list[0]
-    newsID = post_list[1]
-        
+    if 'scrap_add' in request.POST :
+        what = 'add'
+        newsID = request.POST['scrap_add']
+    elif 'scrap_cancle' in request.POST :
+        what = 'cancle'
+        post_list = request.POST['scrap_cancle'].split('; ')
+        newsID = post_list[0]
+
     userID = AuthUser.objects.filter(username = request.user)[0].id
     user_movie_row = UserScrapTable.objects.filter(user = userID, news = newsID)
     
@@ -131,17 +133,14 @@ def scrap(request) :
             UserScrapTable.objects.filter(user = AuthUser.objects.get(id = userID),
                                           news = NewsInfoTable.objects.get(news_id = newsID)).delete()
             
-            if (len(post_list) == 2) :
+            if (len(post_list) == 2) : # scrapNews 페이지에서 삭제를 한 경우 새로고침
+                return show_scrapNews(request)
+            else : # content 페이지에서 삭제를 한 경우, 새 창에 scrap.html을 띄움
                 return render(request, 'polls/scrap.html', {'info' : 'delete',
                                                             'username' : request.user,
                                                             'news_id' : newsID,
                                                             'time' : timezone.localtime()
                                                            })
-            elif (len(post_list) == 3) : # scrapNews 페이지에서 삭제를 한 경우
-                return show_scrapNews(request)
-            
-            else :
-                return HttpResponse("Error in post_list")
 
     # scrap한 적이 없는 뉴스임
     else :
@@ -174,7 +173,5 @@ def show_scrapNews(request) :
     scrapNews['scrapNews'] = []
     for idx, row in user_scrap_news.iterrows() :
         scrapNews['scrapNews'].append(NewsInfoTable.objects.get(news_id = row[2]))
-        
-    print("scrapNews:\n{}\n".format(scrapNews))
-    
+
     return render(request, 'polls/scrapNews.html', scrapNews)

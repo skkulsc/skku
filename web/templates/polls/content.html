@@ -12,10 +12,10 @@
 		<br>
 		<form name = 'goPreviousPage' method = 'post'>
 			{% csrf_token %}
-			<button type = 'submit' name = 'back' onclick="goBack('{{ scrap }}')" value = '{{ newsID }}'>
+			<button type = 'submit' name = 'back' onclick="goBack('{{ from_scrap }}')" value = '{{ newsID }}'>
 				이전 페이지로 돌아가기
 			</button>
-
+		</form>
 		<div class "container">
 			<p><br></p>
 			{% for news in read_data %}
@@ -27,10 +27,10 @@
 			
 			<form name = 'frmPopup' method = 'post'>
 				{% csrf_token %}
-				<button type = "submit" name = "scrap" onclick="open_pop()" value='add; {{ news.news_id }}'>
+				<button type = "submit" name = "scrap_add" onclick="open_pop()" value='{{ news.news_id }}'>
 					스크랩 하기
 				</button>
-				<button type = "submit" name = "scrap" onclick="open_pop()" value='cancle; {{ news.news_id }}'>
+				<button type = "submit" name = "scrap_cancle" onclick="open_pop()" value='{{ news.news_id }}'>
 					스크랩 취소
 				</button>
 			</form>
@@ -56,7 +56,7 @@
 		function open_pop() {
 			var frmPop = document.frmPopup;
 			var url = '/articles/scrap/';
-			window.open(url, 'popupView', 'width=600, height = 300');
+			window.open('', 'popupView', 'width=600, height = 300');
 			frmPop.action = url;
 			frmPop.target = 'popupView';
 			frmPop.submit();
