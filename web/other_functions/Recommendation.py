@@ -129,9 +129,6 @@ class Rec_system() :
         return DB_list
         
     def recommend(self, userID, newsId_list, context) :
-        content_list = []
-        mf_list = []
-        
         # 랜덤으로 고른 뉴스
         context['newsInfo'] = self.extract_newsList()
         
@@ -171,7 +168,6 @@ class Rec_system() :
                     for idx in idx_list :
                         ID, date, title = final_list[idx]
                         if (ID not in newsId_list) and (ID not in rec_news_list) and (title.strip() not in title_list) : # 중복방지
-                            content_list.append(ID)
                             rec_news_list.append(ID)
                             title_list.append(title.strip())
 
@@ -215,7 +211,6 @@ class Rec_system() :
                     
                     for ID in more_1_ID :
                         if ID not in newsId_list :
-                            mf_list.append(ID)
                             rec_news_list.append(ID)
 
                 except Exception as e :
@@ -235,7 +230,6 @@ class Rec_system() :
                         for idx in idx_list :
                             ID, date,  title = final_list[idx]
                             if (ID not in newsId_list) and (ID not in rec_news_list) and (title.strip() not in title_list) : # 중복방지
-                                content_list.append(ID)
                                 rec_news_list.append(ID)
                                 title_list.append(title.strip())
 
@@ -262,6 +256,3 @@ class Rec_system() :
                 
                 context['rec_news'] = self.get_news_from_ID(rec_news_list)
                 random.shuffle(context['rec_news'])
-        
-        print("mf_list : {}\n".format(mf_list))
-        print("content_list : {}\n".format(content_list))
